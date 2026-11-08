@@ -1,0 +1,1040 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MosqCare 蚊媒饲养工作台 · v2.2</title>
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{font-family:"Segoe UI","Microsoft YaHei",-apple-system,sans-serif;background:#e8edf2;color:#1e293b;font-size:14px}
+button{font-family:inherit;cursor:pointer}
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid #2563eb;outline-offset:1px}
+/* ---------- top bar ---------- */
+.topbar{position:sticky;top:0;z-index:60;height:52px;background:#0f172a;color:#e2e8f0;display:flex;align-items:center;justify-content:space-between;padding:0 16px}
+.tb-title{font-weight:600;font-size:15px}
+.tb-ver{font-weight:400;font-size:12px;color:#94a3b8;margin-left:10px}
+/* ---------- split layout ---------- */
+.app{display:flex;height:calc(100vh - 52px);overflow:hidden}
+.proto-pane{flex:1;min-width:0;display:flex;flex-direction:column;padding:0}
+.doc-pane{display:none}
+.browser-frame{flex:1;min-height:0;display:flex;flex-direction:column;background:#fff;overflow:hidden}
+.proto-viewport{flex:1;min-height:0;position:relative;overflow:auto;background:#f1f5f9}
+.proto-app{display:flex;min-height:100%}
+/* ---------- proto sidebar ---------- */
+.proto-sidebar{flex:none;width:148px;background:#13315c;color:#b6c7e0;padding:14px 10px;display:flex;flex-direction:column;gap:4px}
+.ps-logo{color:#fff;font-weight:700;font-size:15px;padding:4px 8px 14px;letter-spacing:.5px}
+.ps-item{display:flex;align-items:center;gap:8px;padding:9px 10px;border-radius:8px;font-size:13.5px;color:#c0d2ee;border:0;background:none;text-align:left;width:100%}
+.ps-item .ico{width:16px;text-align:center;flex:none}
+.ps-item.active{background:#2563eb;color:#fff;font-weight:600}
+.ps-badge{margin-left:auto;background:#ef4444;color:#fff;font-size:11px;border-radius:9px;padding:1px 6px}
+.ps-item.p1{color:#7c96bd;font-size:12.5px}
+.ps-sep{border-top:1px solid rgba(255,255,255,.08);margin:10px 4px}
+.ps-foot{margin-top:auto;font-size:11px;color:#7c96bd;padding:8px;line-height:1.6}
+.proto-main{flex:1;min-width:0;display:flex;flex-direction:column}
+.proto-topbar{height:46px;background:#fff;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;justify-content:space-between;padding:0 16px;flex:none}
+.pt-title{font-weight:600;font-size:14px;color:#0f172a}
+.pt-right{font-size:12px;color:#64748b;display:flex;gap:10px;align-items:center}
+.page{display:none;padding:16px 18px 28px}
+.page.active{display:block}
+/* ---------- generic cards / regions ---------- */
+.region{position:relative;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:14px;margin-top:12px}
+.region-title{font-size:13.5px;font-weight:600;color:#334155;margin-bottom:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.sub-region{border:1px solid #eef2f6;border-radius:8px;padding:10px}
+.goto-btn{margin-left:auto;font-size:12px;color:#1d4ed8;background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;padding:3px 10px;flex:none}
+.goto-btn:hover{background:#dbeafe}
+.mini-btn{font-size:12px;background:#2563eb;color:#fff;border:0;border-radius:6px;padding:4px 10px}
+.mini-btn:hover{background:#1d4ed8}
+.mini-btn.ghost{background:#fff;color:#1d4ed8;border:1px solid #bfdbfe}
+.mini-btn.ghost:hover{background:#eff6ff}
+.mini-btn.danger{background:#dc2626}
+.mini-btn:disabled{background:#e2e8f0;color:#94a3b8;cursor:not-allowed;border:0}
+.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.kpi{background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:12px;text-align:left}
+.kpi:hover{border-color:#2563eb}
+.kpi .kv{font-size:24px;font-weight:700;color:#0f172a}
+.kpi.warn .kv{color:#b45309}
+.kpi .kl{font-size:12px;color:#64748b;margin-top:2px}
+.cage-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.cage-card{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:12px;font-size:12.5px;min-width:0;min-height:192px;display:flex;flex-direction:column}
+.cage-card:hover{border-color:#2563eb;box-shadow:0 2px 10px rgba(37,99,235,.08)}
+.cc-top{display:flex;gap:10px;align-items:center}
+.cc-ico{flex:none;width:54px;height:54px;border-radius:13px;background:#f8fafc;border:1px solid #eef2f6;display:flex;align-items:center;justify-content:center;position:relative}
+.cc-co{position:absolute;right:-8px;bottom:-8px;background:#fff;border-radius:50%;padding:3px;box-shadow:0 1px 4px rgba(15,23,42,.18);line-height:0;font-size:0}
+.cc-info{flex:1;min-width:0}
+.cc-name{display:flex;align-items:center;gap:6px;flex-wrap:nowrap;min-width:0}
+.cc-name b{font-size:14px;color:#0f172a;flex:none}
+.cc-name .tag{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cc-stage{font-size:12px;font-weight:600;margin-top:3px}
+.cc-row{color:#475569;margin-top:7px;line-height:1.5}
+.feed-late{color:#b45309;font-weight:600}
+.pupa-hint{color:#6d28d9;font-weight:600}
+.cc-alerts{margin-top:8px;min-height:23px;display:flex;gap:6px;flex-wrap:wrap;align-items:flex-start}
+.cc-alert{font-size:11px;background:#fef2f2;color:#b91c1c;border:1px solid #fecaca;border-radius:6px;padding:2px 8px;cursor:pointer}
+.cc-alert:hover{background:#fee2e2}
+.cc-alert.info{background:#eff6ff;color:#1d4ed8;border-color:#bfdbfe}
+.cc-btns{margin-top:auto;padding-top:9px;display:flex;gap:6px}
+@media (max-width:760px){.kpis{grid-template-columns:repeat(2,1fr)}.cage-grid{grid-template-columns:repeat(2,1fr)}}
+.dash-sep{height:1px;background:#e2e8f0;margin-top:14px}
+.rp-sheet{background:#fff;border:1px solid #cbd5e1;border-radius:6px;padding:20px 22px;font-size:12px;color:#1e293b;max-height:58vh;overflow:auto}
+.rp-head{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2.5px solid #1d4ed8;padding-bottom:8px;margin-bottom:12px}
+.rp-head h4{font-size:16.5px;color:#0f172a;margin:0;letter-spacing:.5px}
+.rp-ver{font-size:11px;color:#64748b}
+.rp-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px 16px;margin-bottom:12px}
+.rp-f{font-size:11.5px;color:#64748b;border-bottom:1px dotted #cbd5e1;padding-bottom:2px}
+.rp-f b{display:block;color:#0f172a;font-size:12.5px;margin-top:1px}
+.rp-tbl{width:100%;border-collapse:collapse;font-size:11.5px}
+.rp-tbl th{background:#eff6ff;border:1px solid #cbd5e1;padding:4px 7px;text-align:center;color:#1e3a8a;white-space:nowrap}
+.rp-tbl th:nth-child(1){width:11%}.rp-tbl th:nth-child(2){width:8%}.rp-tbl th:nth-child(3){width:11%}.rp-tbl th:nth-child(5){width:9%}.rp-tbl th:nth-child(6){width:10%}
+.rp-tbl td{border:1px solid #cbd5e1;padding:4px 7px;color:#334155}
+.rp-tbl td:first-child{white-space:nowrap}
+.rp-foot{display:flex;justify-content:space-between;margin-top:14px;font-size:11.5px;color:#475569;border-top:1px solid #e2e8f0;padding-top:8px}
+.lin-chain{display:flex;flex-direction:column;margin:4px 0 8px}
+.lin-box{border:1px solid #e2e8f0;background:#f8fafc;border-radius:8px;padding:6px 10px;font-size:12.5px;width:fit-content;min-width:230px}
+.lin-box.now{border-color:#2563eb;background:#eff6ff}
+.lin-box b{color:#0f172a}
+.lin-arrow{color:#94a3b8;font-size:11px;padding:2px 0 2px 24px}
+.strain-tree{overflow-x:auto;padding:4px 2px}
+.stree ul{display:flex;justify-content:center;list-style:none;margin:0;padding:20px 0 0;position:relative}
+.stree ul::before{content:'';position:absolute;top:0;left:50%;height:20px;border-left:1.5px solid #cbd5e1}
+.stree>ul{padding-top:0}
+.stree>ul::before{display:none}
+.stree li{list-style:none;position:relative;text-align:center;padding:20px 5px 0;display:flex;flex-direction:column;align-items:center}
+.stree li::before,.stree li::after{content:'';position:absolute;top:0;right:50%;border-top:1.5px solid #cbd5e1;width:50%;height:20px}
+.stree li::after{right:auto;left:50%;border-left:1.5px solid #cbd5e1}
+.stree li:only-child::after,.stree li:only-child::before{display:none}
+.stree li:first-child::before,.tree li:last-child::after{border:0}
+.stree li:last-child::before{border-right:1.5px solid #cbd5e1;border-radius:0 6px 0 0}
+.stree li:first-child::after{border-radius:6px 0 0 0}
+.stree .tree-box{min-width:150px;max-width:210px;text-align:left;cursor:pointer;border:1px solid #e2e8f0;background:#f8fafc;border-radius:8px;padding:5px 10px;font-size:12px;color:#475569}
+.stree .tree-box:hover{border-color:#2563eb}
+.stree .tree-box.now{border-color:#2563eb;background:#eff6ff}
+.stree .tree-box b{color:#0f172a}
+.mgroup{margin-top:8px}
+.mg-label{font-size:11.5px;color:#64748b;margin-bottom:5px}
+@media print{
+  @page{size:A4;margin:9mm 8mm}
+  body.print-report *{visibility:hidden}
+  body.print-report #modal-report, body.print-report #modal-report *{visibility:visible}
+  body.print-report .modal-layer{position:static;padding:0;background:none;overflow:visible;display:block}
+  body.print-report #modal-report{position:static;width:100% !important;max-width:none;padding:0;margin:0;box-shadow:none;border-radius:0}
+  body.print-report #modal-report .m-title{display:none}
+  body.print-report .rp-sheet{max-height:none;overflow:visible;border:none;padding:0}
+}
+.lvl{font-size:11px;padding:2px 6px;border-radius:5px;flex:none}
+.lvl-warn{background:#fef3c7;color:#92400e}.lvl-info{background:#e0f2fe;color:#075985}.lvl-crit{background:#fee2e2;color:#991b1b}
+.lg-dot{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:4px;vertical-align:-1px}
+.empty{padding:22px;text-align:center;color:#94a3b8;font-size:13px;border:1px dashed #cbd5e1;border-radius:8px}
+/* ---------- tables ---------- */
+.tbl-wrap{overflow-x:auto}
+.tbl{width:100%;border-collapse:collapse;font-size:13px}
+.tbl th{background:#f8fafc;color:#475569;text-align:left;font-weight:600;padding:8px 10px;border-bottom:1px solid #e2e8f0;white-space:nowrap}
+.tbl td{padding:8px 10px;border-bottom:1px solid #f1f5f9;vertical-align:middle;white-space:nowrap}
+.tbl td.wrap{white-space:normal}
+.badge{font-size:11px;border-radius:9px;padding:2px 8px;white-space:nowrap}
+.bg-rear{background:#dbeafe;color:#1d4ed8}.bg-closed{background:#e2e8f0;color:#475569}.bg-disc{background:#fee2e2;color:#991b1b}
+.surv{font-weight:600;color:#1d4ed8}
+.filters{display:flex;gap:10px;align-items:center;margin-bottom:10px;flex-wrap:wrap;font-size:12px;color:#64748b}
+.filters select{font-size:13px;padding:5px 8px;border:1px solid #cbd5e1;border-radius:6px;background:#fff}
+/* ---------- batch detail ---------- */
+.bd-head{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:flex-start}
+.bd-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;align-items:center}
+.ba-sep{width:1px;height:18px;background:#e2e8f0;flex:none}
+.stepper{display:flex;align-items:stretch;gap:0;margin:6px 0 2px}
+.step{flex:1;min-width:0;min-height:64px;padding:8px 4px;background:#f1f5f9;color:#64748b;font-size:11.5px;border-radius:7px;line-height:1.35;text-align:center;display:flex;flex-direction:column;justify-content:center;gap:3px}
+.step.done{background:#dbeafe;color:#1d4ed8}
+.step.now{background:#2563eb;color:#fff}
+.step .sn{font-size:14px;font-weight:600}
+.step .sc{font-size:12.5px;font-weight:700}
+.step .sd{font-size:10px;opacity:.85;white-space:normal;line-height:1.45;word-break:break-word;padding:0 2px}
+.step-sep{align-self:center;color:#94a3b8;font-size:10px;padding:0 2px;flex:none}
+.mrow{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.mchip{background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:6px 10px;font-size:12px;color:#475569}
+.mchip b{color:#1d4ed8;font-size:14px}
+.readonly-banner{display:none;background:#fffbeb;border:1px solid #fde68a;color:#92400e;border-radius:8px;padding:9px 12px;font-size:12.5px;margin-bottom:10px}
+/* ---------- timeline ---------- */
+.tl{margin-top:6px}
+.tl-item{display:flex;gap:10px;padding:9px 4px;border-bottom:1px solid #f1f5f9;font-size:13px;align-items:flex-start}
+.tl-date{flex:none;width:104px;color:#64748b;font-size:12px;padding-top:2px}
+.tl-ico{flex:none;width:22px;height:22px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff;margin-top:1px}
+.i-stage{background:#2563eb}.i-env{background:#0ea5e9}.i-feed{background:#d97706}.i-treat{background:#7c3aed}.i-close{background:#334155}
+.tl-body{flex:1;min-width:0}
+.tl-t{font-weight:600;color:#334155;font-size:13px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.tl-s{color:#64748b;font-size:12.5px;margin-top:2px;line-height:1.55}
+.delta{display:inline-block;font-size:11px;background:#ecfdf5;color:#047857;border-radius:5px;padding:1px 6px;font-weight:600}
+.delta.neg{background:#fef2f2;color:#b91c1c}
+.delta.gray{background:#f1f5f9;color:#64748b}
+/* ---------- forms / modals ---------- */
+.modal-layer{position:absolute;inset:0;background:rgba(15,23,42,.5);display:none;align-items:flex-start;justify-content:center;padding:22px 12px;overflow:auto;z-index:40}
+.modal-layer.open{display:flex}
+.modal{background:#fff;border-radius:12px;width:500px;max-width:100%;padding:16px 18px;box-shadow:0 20px 50px rgba(15,23,42,.3);display:none}
+.modal.active{display:block}
+.m-title{font-size:15px;font-weight:700;color:#0f172a;display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.m-close{margin-left:auto;background:none;border:0;color:#94a3b8;font-size:20px;line-height:1;padding:2px 6px}
+.m-tabs{display:flex;gap:4px;background:#f1f5f9;padding:3px;border-radius:8px;margin-bottom:12px}
+.m-tab{flex:1;border:0;background:none;font-size:12.5px;padding:6px 4px;border-radius:6px;color:#475569}
+.m-tab.active{background:#fff;color:#1d4ed8;font-weight:600;box-shadow:0 1px 3px rgba(15,23,42,.12)}
+.rform{display:none}
+.rform.active{display:block}
+.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.fw{display:flex;flex-direction:column;gap:3px}
+.fw.full{grid-column:1/-1}
+.fw label{font-size:12px;color:#475569}
+.req{color:#dc2626}
+.fw input,.fw select,.fw textarea{font-size:13px;padding:6px 8px;border:1px solid #cbd5e1;border-radius:6px;font-family:inherit;background:#fff;width:100%}
+.fw textarea{resize:vertical}
+.err{font-size:11.5px;color:#dc2626;display:none}
+.err.show{display:block}
+.fw.invalid input,.fw.invalid select{border-color:#dc2626}
+.m-foot{display:flex;justify-content:flex-end;gap:8px;margin-top:14px;align-items:center}
+.m-note{font-size:12px;color:#94a3b8;margin-top:8px}
+.m-warn{margin-right:auto;font-size:12px;color:#b45309}
+.btn{font-size:13px;border-radius:7px;padding:7px 16px;border:1px solid transparent}
+.btn.primary{background:#2563eb;color:#fff}
+.btn.primary:hover{background:#1d4ed8}
+.btn.ghost{background:#fff;color:#475569;border-color:#cbd5e1}
+.checkline{display:flex;gap:8px;align-items:flex-start;font-size:12.5px;color:#475569;margin-top:10px}
+.confirm-bar{display:none;margin-top:10px;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:10px;font-size:12.5px;color:#991b1b;align-items:center;gap:8px;flex-wrap:wrap}
+.confirm-bar.show{display:flex}
+/* ---------- analytics ---------- */
+.chart-block{background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:14px;margin-top:12px}
+#ana-charts{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:12px}
+#ana-charts .chart-block{margin-top:0}
+#ana-charts .empty{grid-column:1/-1}
+@media (max-width:760px){#ana-charts{grid-template-columns:1fr}}
+#ana-charts .bar-lbl{width:150px}
+.ana-btns{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:12px}
+.ana-btn-card{background:#fff;border:1px solid #bfdbfe;border-radius:10px;padding:12px 14px;cursor:pointer}
+.ana-btn-card:hover{background:#eff6ff;border-color:#93c5fd}
+.ana-btn-card b{display:block;font-size:13px;color:#1d4ed8}
+.ana-btn-card span{display:block;font-size:12px;color:#64748b;margin-top:3px}
+.chart-title{font-size:13px;font-weight:600;color:#334155;margin-bottom:8px}
+.bar-row{display:flex;align-items:center;gap:8px;margin-bottom:7px;font-size:12.5px}
+.bar-lbl{flex:none;width:200px;color:#475569;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bar-track{flex:1;background:#f1f5f9;border-radius:5px;height:16px;overflow:hidden;min-width:60px}
+.bar-fill{height:100%;border-radius:5px}
+.bar-val{flex:none;width:52px;font-weight:600;color:#334155}
+.legend-row{display:flex;gap:14px;font-size:12px;color:#475569;margin-bottom:8px;flex-wrap:wrap}
+.scatter-wrap{overflow-x:auto}
+.ana-note{font-size:12px;color:#94a3b8;margin-top:6px;line-height:1.6}
+/* ---------- alerts ---------- */
+.alert-card{border:1px solid #e2e8f0;border-left-width:4px;border-radius:8px;padding:10px 12px;margin-bottom:8px;font-size:13px;background:#fff}
+.alert-card.warn{border-left-color:#f59e0b}
+.alert-card.crit{border-left-color:#dc2626}
+.alert-card.info{border-left-color:#0ea5e9}
+.alert-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.alert-msg{color:#475569;font-size:12.5px;margin-top:4px}
+.alert-meta{color:#94a3b8;font-size:12px;margin-top:3px}
+.state-open{background:#fef3c7;color:#92400e}.state-done{background:#e2e8f0;color:#475569}.state-auto{background:#e0f2fe;color:#075985}
+.th-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+@media (max-width:760px){.th-grid{grid-template-columns:1fr 1fr}}
+/* ---------- doc pane ---------- */
+.doc-tabs{display:flex;gap:4px;padding:10px 16px 0;background:#fff;border-bottom:1px solid #e2e8f0;flex:none}
+.dtab{border:0;background:none;font-size:13.5px;padding:9px 14px;color:#64748b;border-bottom:2px solid transparent}
+.dtab.active{color:#1d4ed8;font-weight:600;border-bottom-color:#2563eb}
+/* ---------- v2.0 页签（硬件接入 / 统计分析） ---------- */
+.ptabs{display:flex;gap:4px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:4px;margin-top:12px}
+.ptabs button{border:0;background:none;font-size:13.5px;padding:8px 18px;color:#64748b;border-radius:7px}
+.ptabs button:hover{background:#f1f5f9;color:#1d4ed8}
+.ptabs button.active{background:#eff6ff;color:#1d4ed8;font-weight:600}
+.ptab-pane{display:none}
+.ptab-pane.active{display:block}
+.loc-disp{display:block;background:#0f172a;border-radius:8px;margin-top:10px;max-width:100%}
+.loc-cam-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:10px}
+@media (max-width:900px){.loc-cam-grid{grid-template-columns:1fr}}
+.loc-cam-card{background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:10px;min-width:0}
+.loc-cam-card canvas{display:block;width:100%;background:#0f172a;border-radius:8px}
+.act-chart{display:block;background:#fff;border:1px solid #e2e8f0;border-radius:8px;margin-top:10px;max-width:100%}
+.rec-dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#dc2626;margin-right:6px;animation:recblink 1.1s infinite}
+@keyframes recblink{0%,100%{opacity:1}50%{opacity:.25}}
+.env-band{height:14px;border-radius:7px;background:#e2e8f0;position:relative;overflow:hidden;margin:4px 0 2px}
+.env-band i{position:absolute;top:0;bottom:0;background:#0ea5e9}
+.doc-body{flex:1;overflow:auto;padding:18px 22px 60px}
+.tab-panel{display:none}
+.tab-panel.active{display:block}
+.panel-h2{display:none;font-size:19px;margin:30px 0 10px;padding-top:10px;border-top:2px solid #e2e8f0;color:#0f172a}
+.doc h3{font-size:16px;color:#0f172a;margin:22px 0 8px}
+.doc h4{font-size:13.5px;color:#334155;margin:14px 0 6px}
+.doc p{line-height:1.8;margin:6px 0;color:#334155}
+.doc ul,.doc ol{line-height:1.85;color:#334155;padding-left:22px;margin:6px 0}
+.doc table{width:100%;border-collapse:collapse;font-size:13px;margin:10px 0}
+.doc th{background:#f8fafc;text-align:left;padding:7px 10px;border:1px solid #e2e8f0;color:#334155;font-weight:600}
+.doc td{padding:7px 10px;border:1px solid #e2e8f0;vertical-align:top;line-height:1.65}
+.feat-section{padding:14px 16px;border:1px solid #e2e8f0;border-radius:10px;margin:14px 0;scroll-margin-top:12px}
+.feat-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.feat-head h3{margin:0}
+.fid{font-size:11px;background:#2563eb;color:#fff;border-radius:6px;padding:2px 8px;font-weight:600;flex:none}
+.fid.p1{background:#94a3b8}
+.feat-flash{animation:featGlow 1.8s ease}
+@keyframes featGlow{0%{box-shadow:0 0 0 4px rgba(37,99,235,.45)}100%{box-shadow:0 0 0 4px rgba(37,99,235,0)}}
+.tag{display:inline-block;font-size:11.5px;background:#f1f5f9;color:#475569;border-radius:5px;padding:1px 7px;margin-right:4px;white-space:nowrap}
+.tag.assume{background:#fef9c3;color:#854d0e}
+.tag.tbd{background:#fee2e2;color:#991b1b}
+.doc-meta{display:none;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:14px 16px;margin-bottom:18px;font-size:13px;color:#475569;line-height:1.8}
+.region-flash{outline:2px solid #2563eb;outline-offset:2px}
+.embed-frame{display:none}
+.static-clone{border:1px solid #cbd5e1;border-radius:10px;overflow:hidden;background:#f1f5f9}
+/* ---------- toast ---------- */
+.toast{position:absolute;left:50%;bottom:18px;transform:translateX(-50%) translateY(8px);background:#0f172a;color:#fff;font-size:13px;padding:9px 18px;border-radius:8px;opacity:0;pointer-events:none;transition:.25s;z-index:50;max-width:80%}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="tb-title">MosqCare · 蚊媒饲养工作台<span class="tb-ver">v2.2 · 2026-11-08 发布</span></div>
+</header>
+<div class="app">
+  <aside class="proto-pane">
+    <div class="browser-frame">
+      <div class="proto-viewport" id="proto-viewport">
+        <div class="proto-app">
+          <nav class="proto-sidebar">
+            <div class="ps-logo">MosqCare</div>
+            <button class="ps-item active" data-nav="dashboard"><span class="ico">◈</span>工作台</button>
+            <button class="ps-item" data-nav="strains"><span class="ico">✾</span>品系档案</button>
+            <button class="ps-item" data-nav="batches"><span class="ico">▤</span>蚊笼管理</button>
+            <button class="ps-item" data-nav="iot"><span class="ico">◉</span>硬件接入</button>
+            <button class="ps-item" data-nav="analytics"><span class="ico">◫</span>统计分析</button>
+            <button class="ps-item" data-nav="alerts"><span class="ico">◆</span>预警中心</button>
+            <div class="ps-sep"></div>
+            <button class="ps-item" data-nav="settings"><span class="ico">≡</span>设置</button>
+            <button class="ps-item" data-nav="about"><span class="ico">ⓘ</span>关于</button>
+            <div class="ps-foot">MosqCare</div>
+          </nav>
+          <main class="proto-main">
+            <div class="proto-topbar">
+              <div class="pt-title" id="pt-title">工作台</div>
+              <div class="pt-right"><span>2026-11-05 周四</span></div>
+            </div>
+            <!-- ================= 工作台 ================= -->
+            <section class="page active" id="page-dashboard">
+              <div class="kpis" id="kpi-cards" style="margin-top:12px"></div>
+              <div class="dash-sep"></div>
+              <div class="cage-grid" id="cage-grid" style="margin-top:12px"></div>
+            </section>
+            <!-- ================= 品系档案 ================= -->
+            <section class="page" id="page-strains">
+              <div class="region" id="region-strains">
+                <div class="region-title">品系档案
+                  <button class="mini-btn" data-open-modal="new-strain">＋ 新增品系</button>
+                  <button class="mini-btn" data-import="strains">导入 CSV</button>
+                  <button class="mini-btn" data-export="strains">导出 CSV</button>
+                  <button class="mini-btn ghost" data-export="strain-lineage">导出代际关系</button>
+                </div>
+                <div class="ana-note">点击品系卡片可查看该蚊株的代系关系与关联蚊笼。</div>
+                <div id="strain-cards" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px"></div>
+              </div>
+            </section>
+            <!-- ================= 蚊笼管理 ================= -->
+            <section class="page" id="page-batches">
+              <div class="region" id="region-batches">
+                <div class="region-title">蚊笼列表
+                  <button class="mini-btn" data-import="cages">导入 CSV</button>
+                  <button class="mini-btn" data-export="cages">导出 CSV</button>
+                  <button class="mini-btn ghost" data-export="cage-records">导出全部记录</button>
+                  <button class="mini-btn" data-open-modal="new-batch">＋ 新建蚊笼</button>
+                </div>
+                <div class="filters">
+                  <span>状态</span>
+                  <select id="flt-status" onchange="renderBatches()">
+                    <option value="all">全部</option><option value="rearing">饲养中</option>
+                    <option value="closed">已结束</option><option value="discarded">已废弃</option>
+                  </select>
+                  <span>品系</span>
+                  <select id="flt-strain" onchange="renderBatches()">
+                    <option value="all">全部品系</option><option value="S1">白纹伊蚊</option><option value="S2">致倦库蚊</option>
+                  </select>
+                </div>
+                <div class="tbl-wrap">
+                  <table class="tbl">
+                    <thead><tr><th>笼号</th><th>品系 / 世代</th><th>起始日期</th><th>当前阶段</th><th>当前数量</th><th>累积存活率</th><th>状态</th><th>操作</th></tr></thead>
+                    <tbody id="batch-tbody"></tbody>
+                  </table>
+                </div>
+              </div>
+            </section>
+            <!-- ================= 蚊笼详情 ================= -->
+            <section class="page" id="page-batch-detail">
+              <div class="readonly-banner" id="bd-readonly"></div>
+              <div class="region" id="region-batch-detail" style="margin-top:0">
+                <div class="region-title">蚊笼详情</div>
+                <div id="bd-header"></div>
+                <div class="region-title" style="margin-top:14px;font-size:12.5px;margin-bottom:4px">生命周期进度</div>
+                <div class="stepper" id="bd-stepper"></div>
+                <div class="region-title" style="margin-top:16px;font-size:12.5px;margin-bottom:4px">记录时间线</div>
+                <div class="tl" id="bd-timeline"></div>
+              </div>
+            </section>
+            <!-- IoT 接入 -->
+            <section class="page" id="page-iot">
+              <div class="ptabs" id="iot-ptabs">
+                <button data-ptab="local" class="active" onclick="switchIotTab('local')">本地接入</button>
+                <button data-ptab="mijia" onclick="switchIotTab('mijia')">米家 IoT</button>
+              </div>
+              <div class="ptab-pane active" id="iotp-local">
+                <div class="region">
+                  <div class="region-title">本机摄像头<span class="tag" style="background:#f0fdf4;color:#166534">多路接入 · 画面仅在本机处理</span></div>
+                  <div class="filters" style="margin-bottom:0">
+                    <span>设备</span>
+                    <select id="loc-dev-sel" style="font-size:13px;padding:5px 8px;border:1px solid #cbd5e1;border-radius:6px;max-width:260px"><option value="">选择设备…</option></select>
+                    <button class="mini-btn" onclick="addLocCam()">添加摄像头</button>
+                    <button class="mini-btn ghost" onclick="stopAllLocCams()">全部关闭</button>
+                  </div>
+                  <div id="loc-cam-grid" class="loc-cam-grid"></div>
+                  <p style="font-size:12px;color:#64748b;line-height:1.7;margin:10px 0 0">多路接入本机摄像头同时监测多笼：每路画面独立分析（降采样 192×144、约 10 fps），红色覆盖为算法识别的运动区域；设备可固定绑定蚊笼，监测会话自动继承绑定。活动度算法已通过合成真值自动验证（计数 MAE ≤ 1.5、活跃度线性 R² ≥ 0.9、昼夜节律 r ≥ 0.85）。外接温湿度传感器的本机读取将在后续版本提供，当前可使用「米家 IoT」页签的自动采集。</p>
+                </div>
+                <div class="region">
+                  <div class="region-title">活动监测会话<span class="tag" style="background:#eff6ff;color:#1d4ed8">每秒采样 · 可导出 CSV</span></div>
+                  <div class="filters">
+                    <span>备注</span>
+                    <input id="loc-note" style="font-size:13px;padding:5px 8px;border:1px solid #cbd5e1;border-radius:6px;width:170px">
+                    <span style="font-size:11.5px;color:#94a3b8">记录入口在各摄像头卡片上，会话自动继承该设备绑定的蚊笼</span>
+                  </div>
+                  <div id="loc-sessions"></div>
+                </div>
+              </div>
+              <div class="ptab-pane" id="iotp-mijia">
+                <div class="region">
+                  <div class="region-title">IoT 接入</div>
+                  <div class="filters" style="margin-bottom:0">
+                    <span>米家账号</span>
+                    <input type="text" value="138****8888" style="font-size:13px;padding:5px 8px;border:1px solid #cbd5e1;border-radius:6px;width:220px">
+                    <span class="badge bg-rear">● 已登录 · 直连</span>
+                    <button class="mini-btn ghost" onclick="toast(tr('已同步米家设备：温湿度计 3 · 摄像头 2 · 智能插座 3'))">同步设备</button>
+                  </div>
+                </div>
+                <div class="region">
+                  <div class="region-title">温湿度传感器<span class="tag" style="background:#eff6ff;color:#1d4ed8">自动采集 → 环境记录</span><button class="goto-btn" data-iot-help="sensor">接入指南</button></div>
+                  <div class="cage-grid" id="iot-sensors"></div>
+                </div>
+                <div class="region">
+                  <div class="region-title">摄像头<span class="tag" style="background:#f5f3ff;color:#6d28d9">实时画面 · 快照存证</span><button class="goto-btn" data-iot-help="cam">接入指南</button></div>
+                  <div class="cage-grid" id="iot-cams"></div>
+                </div>
+                <div class="region">
+                  <div class="region-title">插座开关控制<span class="tag" style="background:#fff7ed;color:#b45309">远程控制 · 预警联动</span><button class="goto-btn" data-iot-help="plug">接入指南</button></div>
+                  <div class="cage-grid" id="iot-plugs"></div>
+                </div>
+              </div>
+            </section>
+            <!-- ================= 统计分析 ================= -->
+            <section class="page" id="page-analytics">
+              <div class="ptabs" id="ana-ptabs">
+                <button data-ptab="surv" class="active" onclick="switchAnaTab('surv')">生存分析</button>
+                <button data-ptab="act" onclick="switchAnaTab('act')">活动分析</button>
+                <button data-ptab="env" onclick="switchAnaTab('env')">环境分析</button>
+              </div>
+              <div class="ptab-pane active" id="anap-surv">
+                <div class="region" id="region-analytics" style="margin-top:12px">
+                  <div class="region-title">统计分析
+                    <button class="mini-btn" data-export="analytics">导出 CSV</button>
+                  </div>
+                  <div class="filters" style="margin-top:10px">
+                    <span>品系</span>
+                    <select id="ana-strain" onchange="setAna('strain',this.value)">
+                      <option value="all">全部品系</option><option value="S1">白纹伊蚊</option><option value="S2">致倦库蚊</option>
+                    </select>
+                    <span>时间范围（按蚊笼起始日期）</span>
+                    <select id="ana-range" onchange="setAna('range',this.value)">
+                      <option value="all">全部</option><option value="90">近 90 天</option><option value="30">近 30 天</option>
+                    </select>
+                  </div>
+                </div>
+                <div id="ana-charts"></div>
+                <div id="ana-table"></div>
+              </div>
+              <div class="ptab-pane" id="anap-act">
+                <div class="region" style="margin-top:12px">
+                  <div class="region-title">活动分析<span class="tag" style="background:#eff6ff;color:#1d4ed8">来自「硬件接入 → 本地接入」的监测会话</span></div>
+                  <div class="kpis" id="act-kpis" style="grid-template-columns:repeat(4,1fr)"></div>
+                  <div class="filters" style="margin-top:10px">
+                    <span>选择会话</span>
+                    <select id="act-sel" onchange="renderActChart()"></select>
+                  </div>
+                  <canvas id="act-ch1" class="act-chart" width="820" height="190"></canvas>
+                  <canvas id="act-ch2" class="act-chart" width="820" height="150"></canvas>
+                  <div id="act-detail" style="margin-top:10px"></div>
+                </div>
+                <div class="region">
+                  <div class="region-title">监测会话列表</div>
+                  <div id="act-table"></div>
+                </div>
+              </div>
+              <div class="ptab-pane" id="anap-env">
+                <div id="env-charts"></div>
+              </div>
+            </section>
+            <!-- ================= 预警中心 ================= -->
+            <section class="page" id="page-alerts">
+              <div class="region" id="region-alerts" style="margin-top:0">
+                <div class="region-title">质量预警
+                  <button class="mini-btn" data-export="alerts">导出 CSV</button>
+                </div>
+                <div class="sub-region" style="margin-bottom:12px">
+                  <div class="region-title" style="font-size:12.5px;margin-bottom:8px">预警阈值<span class="tag assume">默认值为常用饲养参数，请按本室规程调整</span></div>
+                  <div class="th-grid">
+                    <div class="fw"><label>温度下限（℃）</label><input type="number" id="th-temp-low" value="24"></div>
+                    <div class="fw"><label>温度上限（℃）</label><input type="number" id="th-temp-high" value="28"></div>
+                    <div class="fw"><label>湿度下限（%）</label><input type="number" id="th-hum-low" value="65"></div>
+                    <div class="fw"><label>湿度上限（%）</label><input type="number" id="th-hum-high" value="85"></div>
+                    <div class="fw"><label>累积存活率下限（%）</label><input type="number" id="th-surv" value="80"></div>
+                    <div class="fw"><label>饲喂间隔上限（h，卵–L4 期）</label><input type="number" id="th-feed-gap" value="24"></div>
+                    <div class="fw"><label>记录断档上限（h）</label><input type="number" id="th-rec-gap" value="48"></div>
+                  </div>
+                  <div style="margin-top:10px"><button class="mini-btn" onclick="saveThresholds()">保存阈值</button><span class="ana-note" style="margin-left:10px">修改仅影响此后检测，不回溯历史预警</span></div>
+                </div>
+                <div id="alert-list"></div>
+              </div>
+            </section>
+            <!-- ================= 设置 ================= -->
+            <section class="page" id="page-settings">
+              <div class="region" id="region-settings" style="margin-top:0">
+                <div class="region-title">设置</div>
+                <div class="sub-region" style="margin-bottom:12px" id="lang-region">
+                  <div class="region-title" style="font-size:12.5px;margin-bottom:8px">界面语言 / Language</div>
+                  <div style="display:flex;gap:8px">
+                    <button class="mini-btn ghost" id="lang-zh" onclick="setLang('zh')">中文</button>
+                    <button class="mini-btn ghost" id="lang-en" onclick="setLang('en')">English</button>
+                  </div>
+                  <div class="ana-note" style="margin-top:6px">切换界面显示语言，立即生效。</div>
+                </div>
+                <div class="sub-region" style="margin-bottom:12px" id="disk-region">
+                  <div class="region-title" style="font-size:12.5px;margin-bottom:8px">本地数据文件夹</div>
+                  <div id="disk-info"></div>
+                </div>
+                <div class="sub-region" style="margin-bottom:12px">
+                  <div class="region-title" style="font-size:12.5px;margin-bottom:8px">数据与备份</div>
+                  <label class="checkline"><input type="checkbox" id="set-backup" checked> 每日关闭前提醒备份数据文件</label>
+                  <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
+                    <button class="mini-btn ghost" onclick="importPreset()">导入预设数据</button>
+                    <button class="mini-btn danger" id="btn-clear-data" onclick="clearAllData()">删除预设数据</button>
+                  </div>
+                  <div class="ana-note" style="margin-top:6px">软件默认无数据。「导入预设数据」载入内置示例数据（品系、蚊笼、记录与预警），用于快速了解软件功能；「删除预设数据」清空全部品系、蚊笼、记录与预警（两击确认），删除前建议先导出 CSV 备份。</div>
+                </div>
+              </div>
+            </section>
+            <!-- ================= 关于 ================= -->
+            <section class="page" id="page-about">
+              <div class="region" style="margin-top:0">
+                <div class="region-title">关于</div>
+                <p style="font-size:13px;color:#334155;line-height:1.7;margin:0;padding-left:12px"><b>MosqCare 蚊媒饲养工作台</b> · v2.2<br>面向个人 / 小实验室的蚊虫饲养过程管理工具：记录、统计、分析、可视化。单机使用，无账号体系。</p>
+                <div class="region-title" style="font-size:12.5px;margin:14px 0 6px"><b>开发者</b></div>
+                <p style="font-size:12.5px;color:#475569;line-height:1.8;margin:0 0 8px;padding-left:12px">河南大学基础医学院 / 河南大学深圳研究院 郭祥<br>School of Basic Medical Sciences, Henan University / Shenzhen Research Institute, Henan University.</p>
+                <div class="region-title" style="font-size:12.5px;margin:14px 0 6px">更新日志</div>
+                <ul style="font-size:12.5px;color:#475569;line-height:1.8;margin:0 0 8px 18px">
+                  <li><b>v2.2</b> — 数据本地落盘：安装目录自动生成 data/（品系、蚊笼、预警）与 result/（监测会话、视频、导出文件），所有记录实时写入本地，关闭软件不丢失；监测视频默认留存 result/videos/ 并可导出；CSV 导出同步留存 result/exports/；启动自动恢复上次数据，用户放入 data/ 的品系档案 / 蚊笼列表 CSV 也会被读取合并；新增系统托盘：关闭窗口后台驻留，右下角托盘图标常驻入口（左键显示主界面，菜单可退出）；安装改为当前用户级（无需管理员权限）；单页报告打印版式优化（打印页隐藏弹窗标题栏、A4 页边距收紧、表头居中不换行、日期列单行、未填写操作人留空）。</li>
+                  <li><b>v2.1</b> — 修复本地接入预览黑屏（显示画布未逐帧绘制）；监测记录新增同步录制摄像头视频（WebM，停止记录后自动下载留存）；CSV 导出全面实装（蚊笼列表/全部管理记录、品系档案含关联蚊笼与代际分布、品系代际关系、统计分析、预警中心）；工程结构拆分为 index.html + script/（i18n、算法、应用）+ data/（预设数据）+ result/（结果留存），算法版本化注册便于迭代与复现。</li>
+                  <li><b>v2.0</b> — 新增「硬件接入 → 本地接入」：本机摄像头多路接入，每路独立实时蚊虫活动度分析（运动能量 + 目标计数双指标算法，阈值自适应、画面仅在本机处理），设备固定绑定蚊笼，支持监测会话管理与 CSV 导出；统计分析升级为多页签（生存分析 / 活动分析 / 环境分析），环境分析新增蚊笼温度带、温度–存活率关联与湿度概览；原 IoT 接入内容并入「米家 IoT」页签。</li>
+                  <li><b>v1.8</b> — 界面支持中英双语，可在设置页切换显示语言；正式发布 Windows 桌面安装包，分完整版（中英双语）与中文版（锁定中文）两个版本。</li>
+                  <li><b>v1.7</b> — IoT 改为内置米家连接器（内嵌小米官方集成内核）：小米账号在软件内登录、一键同步设备，无需自建 Home Assistant（HA 降为可选高级路径）；界面改为全屏软件预览；发布版：默认无数据、设置支持导入 / 删除预设数据，新增记录重构为「饲喂 / 环境 / 阶段计数 / 实验处理」分组，去除冲正机制，虫态图标改为二次元萌系风格，生命周期卡片可读性优化。</li>
+                  <li><b>v1.6</b> — 界面去演示化标注；预警简化为「只预警 + 处理建议」（取消处置表单）；IoT 三类设备各附接入指南；蚊笼详情新增编辑 / 删除蚊笼；规划 Windows 桌面安装包。</li>
+                  <li><b>v1.5</b> — 新增「IoT 接入」面板（F12）：温湿度传感器自动采集写环境记录、摄像头实时画面与快照、插座开关远程控制；接入经 Home Assistant 中转（设备链路待接入）。</li>
+                  <li><b>v1.4</b> — 卡片图标卡通化并调大；多阶段并行显示（并存阶段徽章）；卡片等高、按钮贴底；预警阈值移至预警中心；品系档案与蚊笼管理支持 CSV 导入 / 导出；统计新增阶段转化率与月度产出趋势。</li>
+                  <li><b>v1.3</b> — 品系物种 / 蚊株信息可编辑；代系关系改树状展示（支持一笼扩繁多个子代）；生命周期进度一屏显示；统计卡片分组；报告表头简化。</li>
+                  <li><b>v1.2</b> — 单页饲养报告（AeLabStr 模板改编）；设置页；关于；各面板导出 CSV；品系代系关系与关联蚊笼；统计增加世代对比与预警统计。</li>
+                  <li><b>v1.1</b> — 蓝色主题；以蚊笼为单位；图形化虫态卡片；预警直接标注在蚊笼卡片上；品系档案独立栏目。</li>
+                  <li><b>v1.0</b> — 首版：四类记录、预警闭环、统计分析、交互式 PRD。</li>
+                </ul>
+              </div>
+            </section>
+          </main>
+        </div>
+        <div class="modal-layer" id="modal-layer">
+          <!-- 记录模态 -->
+          <div class="modal" id="modal-record">
+            <div class="m-title"><span>新增记录</span><span class="tag" id="mr-batch"></span><button class="m-close" data-close-modal title="关闭">×</button></div>
+            <div class="m-tabs">
+              <button class="m-tab" data-rtab="feed" onclick="setRTab('feed')">饲喂</button>
+              <button class="m-tab" data-rtab="env" onclick="setRTab('env')">环境</button>
+              <button class="m-tab" data-rtab="stage" onclick="setRTab('stage')">阶段计数</button>
+              <button class="m-tab" data-rtab="treat" onclick="setRTab('treat')">实验处理</button>
+            </div>
+            <form class="rform" id="form-stage" onsubmit="return submitStage(event)">
+              <div class="fgrid">
+                <div class="fw"><label>日期 <span class="req">*</span></label><input type="date" id="f-stage-date" value="2026-11-05"><span class="err" id="e-stage-date"></span></div>
+                <div class="fw"><label>转入阶段（下一阶段）<span class="req">*</span></label><select id="f-stage-to"></select><span class="err" id="e-stage-to"></span></div>
+                <div class="fw"><label>计数方式</label><select id="f-stage-method"><option value="全数">全数</option><option value="抽样估算">抽样估算</option></select></div>
+                <div class="fw"><label>转入数量 <span class="req">*</span></label><input type="number" id="f-stage-n" min="1" placeholder="如 430"><span class="err" id="e-stage-n"></span></div>
+                <div class="fw"><label>淘汰 / 死亡数</label><input type="number" id="f-stage-dead" min="0" value="0"><span class="err" id="e-stage-dead"></span></div>
+                <div class="fw full"><label>备注</label><input id="f-stage-note" placeholder="选填，如：亲代来源、水质情况"></div>
+              </div>
+              <div class="m-note" id="stage-hint"></div>
+              <div class="m-foot"><button type="button" class="btn ghost" data-close-modal>取消</button><button type="submit" class="btn primary">保存记录</button></div>
+            </form>
+            <form class="rform active" id="form-feed" onsubmit="return submitFeed(event)">
+              <div class="fgrid">
+                <div class="fw"><label>日期 <span class="req">*</span></label><input type="date" id="f-feed-d" value="2026-11-05"><span class="err" id="e-feed-d"></span></div>
+                <div class="fw"><label>时间</label><input type="time" id="f-feed-tm" value="08:00"></div>
+                <div class="fw"><label>类型 <span class="req">*</span></label><select id="f-feed-type"><option value="糖水">糖水</option><option value="幼虫饲料">幼虫饲料</option><option value="血饲">血饲</option></select></div>
+                <div class="fw"><label>规格 <span class="req">*</span></label><input id="f-feed-spec" placeholder="例：10% 蔗糖 / 磨碎鱼饲料 0.5g / 小鼠麻醉血饲"><span class="err" id="e-feed-spec"></span></div>
+                <div class="fw"><label>方式</label><select id="f-feed-way"><option value="棉球更换">棉球更换</option><option value="撒喂">撒喂</option><option value="人工膜">人工膜</option><option value="其他">其他</option></select></div>
+                <div class="fw full"><label>备注</label><input id="f-feed-note" placeholder="选填"></div>
+              </div>
+              <div class="m-foot"><button type="button" class="btn ghost" data-close-modal>取消</button><button type="submit" class="btn primary">保存记录</button></div>
+            </form>
+            <form class="rform" id="form-env" onsubmit="return submitEnv(event)">
+              <div class="fgrid">
+                <div class="fw"><label>日期 <span class="req">*</span></label><input type="date" id="f-env-d" value="2026-11-05"><span class="err" id="e-env-d"></span></div>
+                <div class="fw"><label>时间</label><input type="time" id="f-env-tm" value="08:00"></div>
+                <div class="fw"><label>温度（℃）<span class="req">*</span></label><input type="number" step="0.1" id="f-env-temp" placeholder="10–40"><span class="err" id="e-env-temp"></span></div>
+                <div class="fw"><label>相对湿度（%）<span class="req">*</span></label><input type="number" id="f-env-hum" placeholder="20–100"><span class="err" id="e-env-hum"></span></div>
+                <div class="fw"><label>光周期（L : D）</label><input id="f-env-photo" value="14:10"></div>
+                <div class="fw full"><label>备注</label><input id="f-env-note" placeholder="选填"></div>
+              </div>
+              <div class="m-note">保存后超出预警阈值将自动生成环境预警。</div>
+              <div class="m-foot"><button type="button" class="btn ghost" data-close-modal>取消</button><button type="submit" class="btn primary">保存记录</button></div>
+            </form>
+            <form class="rform" id="form-treat" onsubmit="return submitTreat(event)">
+              <div class="fgrid">
+                <div class="fw"><label>类型 <span class="req">*</span></label><select id="f-treat-type"><option value="取样送检">取样送检</option><option value="分装扩繁">分装扩繁</option><option value="药物处理">药物处理</option><option value="感染饲毒">感染饲毒</option><option value="添加产卵杯">添加产卵杯</option><option value="其他">其他</option></select></div>
+                <div class="fw"><label>移出当期个体数</label><input type="number" id="f-treat-out" min="0" value="0"><span class="err" id="e-treat-out"></span></div>
+                <div class="fw full"><label>去向 / 用途</label><input id="f-treat-to" placeholder="例：卵 800 粒 → 新建蚊笼 C-08"></div>
+                <div class="fw"><label>操作人</label><input id="f-treat-by" value="当班饲养员"></div>
+                <div class="fw full"><label>备注</label><input id="f-treat-note" placeholder="选填"></div>
+              </div>
+              <div class="m-note">移出数量将从当前数量中扣减；「分装扩繁」请另建子笼并在备注中关联。</div>
+              <div class="m-foot"><button type="button" class="btn ghost" data-close-modal>取消</button><button type="submit" class="btn primary">保存记录</button></div>
+            </form>
+          </div>
+          <!-- 统计分析弹窗 -->
+          <div class="modal" id="modal-ana-extra" style="width:680px">
+            <div class="m-title"><span id="ax-title">产能报表</span><button class="m-close" data-close-modal title="关闭">×</button></div>
+            <div id="ax-body" style="max-height:62vh;overflow:auto"></div>
+          </div>
+          <!-- 新增品系模态 -->
+          <div class="modal" id="modal-new-strain">
+            <div class="m-title">新增品系<button class="m-close" data-close-modal title="关闭">×</button></div>
+            <form onsubmit="return submitNewStrain(event)">
+              <div class="fgrid">
+                <div class="fw"><label>名称 <span class="req">*</span></label><input id="f-ns-name" placeholder="如 白纹伊蚊"><span class="err" id="e-ns-name"></span></div>
+                <div class="fw"><label>蚊株</label><input id="f-ns-code" placeholder="如 佛山株"></div>
+                <div class="fw"><label>蚊株缩写</label><input id="f-ns-abbr" placeholder="如 FS，用作笼号前缀"></div>
+                <div class="fw"><label>拉丁名</label><input id="f-ns-latin" placeholder="如 Aedes albopictus"></div>
+                <div class="fw"><label>来源</label><input id="f-ns-source" placeholder="如 本室驯化 / 野外采集"></div>
+                <div class="fw full"><label>备注</label><input id="f-ns-note" placeholder="如 敏感品系，实验对照用"></div>
+              </div>
+              <div class="m-note">保存后可在品系档案点击卡片查看代系关系与关联蚊笼；新建蚊笼时的品系下拉将同步更新。</div>
+              <div class="m-foot"><button type="button" class="btn ghost" data-close-modal>取消</button><button type="submit" class="btn primary">保存品系</button></div>
+            </form>
+          </div>
+          <!-- 新建蚊笼模态 -->
+          <div class="modal" id="modal-new-batch">
+            <div class="m-title">新建蚊笼<button class="m-close" data-close-modal title="关闭">×</button></div>
+            <form onsubmit="return submitNewBatch(event)">
+              <div class="fgrid">
+                <div class="fw"><label>品系 <span class="req">*</span></label>
+                  <select id="f-nb-strain"></select></div>
+                <div class="fw"><label>亲代蚊笼</label>
+                  <select id="f-nb-parent"></select></div>
+                <div class="fw"><label>世代号 <span class="req">*</span></label><input id="f-nb-gen" value="F13"><span class="err" id="e-nb-gen"></span></div>
+                <div class="fw"><label>起始日期 <span class="req">*</span></label><input type="date" id="f-nb-start" value="2026-11-05"><span class="err" id="e-nb-start"></span></div>
+                <div class="fw"><label>起始卵量（粒）<span class="req">*</span></label><input type="number" id="f-nb-eggs" min="1" placeholder="如 500"><span class="err" id="e-nb-eggs"></span></div>
+                <div class="fw full"><label>来源说明</label><input id="f-nb-note" placeholder="例：亲代蚊笼产卵收集 / 野外采集"></div>
+              </div>
+              <div class="m-note" id="nb-warn" style="color:#b45309;display:none"></div>
+              <div class="m-note">提交后自动生成一条「卵入笼」记录，笼号自动生成（C-流水号），并进入蚊笼详情。</div>
+              <div class="m-foot"><button type="button" class="btn ghost" data-close-modal>取消</button><button type="submit" class="btn primary" id="nb-submit">创建蚊笼</button></div>
+            </form>
+          </div>
+          <!-- 结束蚊笼模态 -->
+          <div class="modal" id="modal-close">
+            <div class="m-title">结束蚊笼<span class="tag" id="mc-batch"></span><button class="m-close" data-close-modal title="关闭">×</button></div>
+            <form onsubmit="return submitCloseAsk(event)">
+              <div class="fgrid">
+                <div class="fw"><label>结束日期 <span class="req">*</span></label><input type="date" id="f-cb-date" value="2026-11-05"></div>
+                <div class="fw"><label>终末阶段</label><select id="f-cb-stage"></select></div>
+                <div class="fw"><label>终末数量 <span class="req">*</span></label><input type="number" id="f-cb-count" min="0"><span class="err" id="e-cb-count"></span></div>
+                <div class="fw"><label>结束原因 <span class="req">*</span></label><select id="f-cb-reason"><option value="产卵收获">产卵收获</option><option value="实验取用">实验取用</option><option value="自然淘汰">自然淘汰</option><option value="全量废弃">全量废弃</option></select></div>
+                <div class="fw full"><label>备注</label><input id="f-cb-note" placeholder="选填"></div>
+              </div>
+              <label class="checkline"><input type="checkbox" id="f-cb-check"> 我已复核终末数量与阶段（必选）</label>
+              <div class="err" id="e-cb-check" style="margin-top:4px"></div>
+              <div class="confirm-bar" id="cb-confirm">结束操作不可撤销，该蚊笼将转为只读并进入产能统计。<button type="button" class="mini-btn danger" onclick="submitCloseDo()">确认结束</button><button type="button" class="mini-btn ghost" onclick="hideCbConfirm()">返回检查</button></div>
+              <div class="m-foot"><button type="button" class="btn ghost" data-close-modal>取消</button><button type="submit" class="btn primary">结束蚊笼</button></div>
+            </form>
+          </div>
+          <!-- 单页报告模态 -->
+          <div class="modal" id="modal-report" style="width:660px">
+            <div class="m-title">单页饲养报告<span class="tag" id="rp-batch"></span><span style="margin-left:auto;display:flex;gap:6px;align-items:center"><button class="mini-btn" onclick="printReport()">打印 / 导出 PDF</button><button class="m-close" data-close-modal title="关闭">×</button></span></div>
+            <div class="rp-sheet" id="rp-sheet"></div>
+          </div>
+          <!-- 品系档案模态 -->
+          <div class="modal" id="modal-strain" style="width:560px">
+            <div class="m-title">品系档案<button class="m-close" data-close-modal title="关闭">×</button></div>
+            <div id="strain-detail"></div>
+          </div>
+          <!-- 摄像头画面模态 -->
+          <div class="modal" id="modal-cam" style="width:560px">
+            <div class="m-title"><span id="cam-title">摄像头画面</span><button class="m-close" data-close-modal title="关闭">×</button></div>
+            <div style="padding:2px 0">
+              <div id="cam-view" style="background:#0f172a;border-radius:8px;height:260px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px">
+                <svg viewBox="0 0 64 64" width="52" height="52"><rect x="8" y="18" width="34" height="28" rx="6" fill="none" stroke="#334155" stroke-width="4"/><path d="M42 28 L56 20 V44 L42 36 Z" fill="none" stroke="#334155" stroke-width="4" stroke-linejoin="round"/><circle cx="25" cy="32" r="7" fill="none" stroke="#334155" stroke-width="3"/></svg>
+                <div id="cam-live" style="color:#94a3b8;font-size:12.5px">米家连接器通道 · 局域网低延迟</div>
+              </div>
+              <p style="font-size:12px;color:#64748b;margin:8px 0 0">当前为示意画面；正式接入后由内置米家连接器取流播放（建议选用固件支持 RTSP 访问的型号，走局域网低延迟通道），快照经本地服务存证并关联蚊笼记录。无 RTSP 开关的型号暂不支持取流。</p>
+            </div>
+          </div>
+          <!-- 蚊笼编辑模态 -->
+          <div class="modal" id="modal-cage-edit" style="width:420px">
+            <div class="m-title">编辑蚊笼<button class="m-close" data-close-modal title="关闭">×</button></div>
+            <div style="padding:2px 0">
+              <div class="fw"><label>笼号</label><input id="ce-id" style="width:100%"></div>
+              <div class="fw"><label>世代</label><input id="ce-gen" style="width:100%"></div>
+              <div class="fw"><label>起始日期</label><input id="ce-start" style="width:100%"></div>
+              <div class="fw"><label>起始卵量（粒）</label><input id="ce-eggs" type="number" style="width:100%"></div>
+            </div>
+            <div class="m-foot"><button type="button" class="btn ghost" data-close-modal>取消</button><button type="button" class="btn primary" onclick="saveCageEdit()">保存</button></div>
+          </div>
+          <!-- IoT 接入指南模态 -->
+          <div class="modal" id="modal-iot-help" style="width:560px">
+            <div class="m-title"><span id="ih-title">接入指南</span><button class="m-close" data-close-modal title="关闭">×</button></div>
+            <div id="ih-body" style="padding:2px 0;max-height:56vh;overflow:auto"></div>
+          </div>
+          <!-- 导入数据模态 -->
+          <div class="modal" id="modal-import" style="width:480px">
+            <div class="m-title"><span id="im-title">导入数据</span><button class="m-close" data-close-modal title="关闭">×</button></div>
+            <div style="padding:2px 0">
+              <p style="font-size:12.5px;color:#475569;line-height:1.7;margin:0 0 10px">CSV 列顺序：<span id="im-cols" style="color:#1d4ed8"></span>。首行为表头会自动忽略；字段内请勿使用英文逗号；蚊株 / 笼号已存在则更新该条，否则新增。</p>
+              <input type="file" id="im-file" accept=".csv" onchange="onImportFile(this)" style="font-size:13px;width:100%">
+              <div id="im-hint" style="font-size:12.5px;margin-top:8px;min-height:18px;color:#64748b"></div>
+            </div>
+            <div class="m-foot"><button type="button" class="btn ghost" data-close-modal>取消</button><button type="button" class="btn primary" id="im-ok" onclick="doImport()" disabled>确认导入</button></div>
+          </div>
+        </div>
+        <div class="toast" id="toast"></div>
+      </div>
+    </div>
+  </aside>
+  <section class="doc-pane">
+    <nav class="doc-tabs no-print">
+      <button class="dtab active" data-tab="overview" onclick="switchTab('overview')">概览</button>
+      <button class="dtab" data-tab="design" onclick="switchTab('design')">设计</button>
+      <button class="dtab" data-tab="detail" onclick="switchTab('detail')">功能需求</button>
+      <button class="dtab" data-tab="rules" onclick="switchTab('rules')">规则与口径</button>
+    </nav>
+    <div class="doc-body doc" id="doc-body">
+      <div class="doc-meta">
+        <b>MosqCare · 蚊媒饲养工作台 产品需求文档（交互式）</b><br>
+        版本 v2.2 · 2026-11-08<br>
+        定位：个人 / 小实验室<b>单机使用</b>的蚊虫饲养过程管理工具，覆盖记录、统计、分析与可视化。<br>
+        阅读方式：默认呈现为可交互的软件预览（全屏原型）；本需求文档内容保留于文件内，供评审时查阅。
+      </div>
+      <!-- ============ 概览 ============ -->
+      <div class="tab-panel active" id="tab-overview">
+        <h2 class="panel-h2">一、概览</h2>
+        <h3>背景与问题</h3>
+        <p>蚊虫饲养是媒介实验室内持续性、日常性的基础工作：一批蚊虫从卵到成虫要经历多个生命阶段，期间伴随每日的温湿度巡视、饲喂、计数分笼与实验处理。目前这些过程大多依赖纸质记录本和分散的表格，带来三类典型问题：</p>
+        <ul>
+          <li><b>记录分散、回溯困难。</b>同一蚊笼的卵量、孵化、分笼、饲喂、环境数据散落在不同位置，回溯一次完整生命周期要翻查多个来源。</li>
+          <li><b>指标滞后、异常发现晚。</b>存活率、化蛹率等指标靠事后手工计算；温度超标、存活率偏低往往在影响发生后才被发现。</li>
+          <li><b>产能不清、谱系难追。</b>每个品系能稳定产出多少成虫、哪一世代表现更好，缺乏现成的统计视图。</li>
+        </ul>
+        <h3>用户与核心任务</h3>
+        <table>
+          <tr><th style="width:110px">要素</th><th>定义</th></tr>
+          <tr><td>主要用户</td><td>实验室饲养人员（1–2 人，共用同一台电脑，单机使用，无账号体系）</td></tr>
+          <tr><td>核心任务</td><td>把每个饲养蚊笼从卵到成虫的全过程记录在册，并随时回答三个问题：这批养得怎么样？出了什么问题？本室能产出多少？</td></tr>
+          <tr><td>旅程触发</td><td>收到新一批卵（亲代产卵收集或野外采集）需要建立饲养蚊笼；或每日巡检时需要补记环境 / 饲喂 / 计数</td></tr>
+          <tr><td>完成标志</td><td>蚊笼结束归档后，在统计分析页可查到该蚊笼的产能与存活率；全生命周期记录可追溯</td></tr>
+          <tr><td>共享对象</td><td>饲养蚊笼（Cage）：隶属于品系，承载全部记录、指标与预警，是统计主线</td></tr>
+        </table>
+        <h3>P0 功能范围</h3>
+        <table>
+          <tr><th style="width:52px">编号</th><th style="width:150px">能力</th><th>说明</th></tr>
+          <tr><td>F1</td><td>工作台总览</td><td>无独立概览区：图形化蚊笼卡片 + 关键指标，预警直接标注在蚊笼卡片上</td></tr>
+          <tr><td>F2</td><td>品系档案与蚊笼管理</td><td>品系档案（左侧栏独立栏目）、蚊笼列表与筛选、新建蚊笼（建笼即建账）</td></tr>
+          <tr><td>F3</td><td>蚊笼详情与时间线</td><td>生命周期进度、存活 / 历期指标、全部记录按时间倒序呈现</td></tr>
+          <tr><td>F4</td><td>日常记录录入</td><td>阶段计数 / 饲喂 / 环境 / 实验处理四类表单，含校验与自动预警触发</td></tr>
+          <tr><td>F5</td><td>记录台账</td><td>记录只增不改，时间线完整可追溯，支持导出记录单</td></tr>
+          <tr><td>F6</td><td>蚊笼结束与产出确认</td><td>终末数量复核、结束原因归档、进入产能统计（不可逆，二次确认）</td></tr>
+          <tr><td>F7</td><td>统计分析</td><td>存活率、发育历期、环境–存活关联、世代对比、产能报表；支持导出 CSV</td></tr>
+          <tr><td>F8</td><td>质量预警</td><td>阈值在预警中心面板内配置；环境超标 / 存活率偏低 / 饲喂超时 / 记录断档自动检测，预警附处理建议</td></tr>
+          <tr><td>F9</td><td>单页饲养报告</td><td>以 AeLabStr v1.4 记录单为模板，每笼可导出 / 打印单页饲养报告（含记录台账）</td></tr>
+          <tr><td>F10</td><td>设置</td><td>数据与备份提醒开关；CSV 导出内置于各面板，不设独立导出入口；预警阈值配置见预警中心（F8）</td></tr>
+          <tr><td>F11</td><td>关于</td><td>独立面板（侧栏入口）：软件介绍、版本更新日志与联系方式</td></tr>
+          <tr><td>F12</td><td>IoT 接入</td><td>温湿度传感器自动采集、摄像头实时画面与快照、插座开关远程控制；内置米家连接器（小米账号登录直连，无需自建 Home Assistant），各区域附接入指南</td></tr>
+        </table>
+        <h3>P1 与非目标</h3>
+        <p><b>P1（下一迭代候选）：</b>蚊笼标签打印、发育历期基准、血饲供体字段扩展、Windows 桌面安装包。CSV 导入 / 导出已内置于品系档案与蚊笼列表（导出另覆盖统计分析 / 预警中心），不设独立「数据导出」入口。</p>
+        <p><b>非目标（明确不做）：</b>多用户账号与权限体系、云同步、试剂耗材库存管理。温湿度仪器自动采集已随 F12「IoT 接入」从非目标转为正式功能（内置米家连接器直连）；环境记录保留来源字段区分手动 / 自动。</p>
+        <h3>假设与待定</h3>
+        <ul>
+          <li><span class="tag assume">假设</span>默认预警阈值取常用饲养参数（温度 24–28℃、湿度 65–85%、累积存活率 80%、幼虫期饲喂间隔 24h、记录断档 48h），需按本室规程确认；系统内可调整。</li>
+          <li><span class="tag assume">假设</span>发育历期基准（用于「偏快 / 偏慢」评价）暂不定义，v1 仅展示实际值。</li>
+          <li><span class="tag assume">假设</span>数据存储于本机，备份由使用者执行；备份提醒开关见「设置」（F10）。</li>
+          <li><span class="tag tbd">待定</span>血饲供体类型（活体麻醉小鼠 / 人工膜）及动物伦理合规的记录要求，确认后在「实验处理」记录中补充对应字段。</li>
+        </ul>
+      </div>
+      <!-- ============ 设计 ============ -->
+      <div class="tab-panel" id="tab-design">
+        <h2 class="panel-h2">二、设计</h2>
+        <h3>核心旅程（P0）</h3>
+        <ol>
+          <li><b>建笼</b> — 收到卵后新建蚊笼：选品系、世代号、起始卵量；系统自动生成「卵入笼」首条记录，蚊笼进入「饲养中 · 卵期」。</li>
+          <li><b>日常记录</b> — 每日巡视补记环境与饲喂；阶段转换时全数 / 抽样计数并记录淘汰数。环境超标或存活率跌破阈值时即时生成预警。</li>
+          <li><b>过程查看</b> — 蚊笼详情页实时呈现阶段进度、累积存活率、阶段历期与完整时间线。</li>
+          <li><b>异常预警</b> — 预警中心列出待处理预警并给出处理建议。</li>
+          <li><b>结束归档</b> — 终末计数复核后结束蚊笼（不可逆，二次确认），进入产能统计。</li>
+          <li><b>复盘分析</b> — 统计页按品系 / 时间范围查看存活率、历期、环境关联与产能。</li>
+        </ol>
+        <p><b>恢复路径：</b>记录录错 → 新增一条说明性备注记录（F5）；环境超标 → 按预警建议处理（F8）；误结束蚊笼 → 不重开，另建新笼并在备注中关联说明。</p>
+        <h3>对象模型</h3>
+        <p>系统围绕三个对象组织：<b>品系（Strain）</b>是长期档案，记录种名、编号、来源，是蚊笼的归属；<b>蚊笼（Cage）</b>是统计与预警的主线对象，一次「卵入笼到结束」为一个蚊笼，同世代分笼扩繁即为多个蚊笼；<b>记录（Record）</b>是蚊笼下的流水，分阶段计数、饲喂、环境、实验处理四类，只增不改。</p>
+        <table>
+          <tr><th>对象</th><th>关键字段</th><th>关系</th></tr>
+          <tr><td>品系 Strain</td><td>编号、种名、拉丁名、来源</td><td>1 → N 蚊笼</td></tr>
+          <tr><td>蚊笼 Cage</td><td>笼号、世代、起始日期、起始卵量、当前阶段、当前数量、状态</td><td>1 → N 记录；1 → N 预警</td></tr>
+          <tr><td>记录 Record</td><td>类型、日期时间、数量 / 参数、备注</td><td>归属唯一蚊笼</td></tr>
+        </table>
+        <h3>蚊笼状态机</h3>
+        <p>状态定义与流转规则的唯一权威定义见「规则与口径」页。设计要点：「饲养中」是唯一可记录状态；「已结束 / 已废弃」为终态，进入后蚊笼只读、不可新增记录、待处理预警自动关闭；误操作不通过重开恢复，而是另建蚊笼并备注关联。</p>
+        <h3>关键产品决策</h3>
+        <table>
+          <tr><th style="width:36px">#</th><th style="width:290px">决策</th><th>理由</th></tr>
+          <tr><td>1</td><td>以「蚊笼」而非「个体」为主线</td><td>蚊虫饲养以群体为单位管理，个体级追踪成本不可接受 [产品判断]</td></tr>
+          <tr><td>2</td><td>阶段严格顺序推进，转入阶段只能为当前阶段的下一阶段</td><td>符合生物学过程，杜绝跳段录入错误 [产品判断]</td></tr>
+          <tr><td>3</td><td>记录不可删除、不可改数，只增不改</td><td>饲养数据是实验追溯依据，保留完整痕迹比整洁更重要 [产品判断]</td></tr>
+          <tr><td>4</td><td>单机、无登录</td><td>1–2 人共用一台电脑，账号体系收益低于成本；数据安全靠本机管控与备份 [产品判断]</td></tr>
+          <tr><td>5</td><td>预警阈值可配置，默认值取常用参数</td><td>不同品系与本室规程差异大，硬编码会立即失效 [产品判断]</td></tr>
+        </table>
+        <h3>数据说明</h3>
+        <p>原型中的品系、蚊笼、记录与统计图表均为<b>示例数据</b>，仅用于展示计算口径与交互行为，不代表真实实验结果。</p>
+      </div>
+      <!-- ============ 功能需求 ============ -->
+      <div class="tab-panel" id="tab-detail">
+        <h2 class="panel-h2">三、功能需求</h2>
+        <p>以下每个小节与左侧原型中的对应区域通过 F 编号互链。计算口径、状态机的唯一权威定义见「规则与口径」页，此处仅引用不重复。</p>
+        <section class="feat-section" id="feature-dashboard" data-embed="page-dashboard">
+          <div class="feat-head"><span class="fid">F1</span><h3>工作台总览</h3><button class="goto-btn" data-goto="dashboard" data-region="cage-grid">在原型中定位</button></div>
+          <p><b>目的：</b>打开即回答「今天该做什么、总体养得怎么样、有没有异常」。工作台不设独立概览区，直接以蚊笼为单位组织首页：虫态以图形化图标呈现，预警直接标注在对应蚊笼卡片上。</p>
+          <h4>行为与规则</h4>
+          <ul>
+            <li><b>关键指标卡：</b>在养蚊笼数、在养虫数（在养蚊笼当前数量之和）、待处理预警数。指标卡点击跳转对应页面。</li>
+            <li><b>蚊笼卡片：</b>每只在养蚊笼一张卡片，以<b>二次元萌系风格</b>虫态图标（卵 / 幼虫 / 蛹 / 成蚊：水润大眼、腮红、微笑与星光点缀，蛹附 Zzz 瞌睡细节）与颜色区分当前阶段；实际饲养中同一蚊笼常存在<b>多阶段并行</b>（如蛹期与成虫期并存），主图标显示主体阶段，并存阶段以右下角小徽章与「+ 阶段名」文字标注；展示笼号、蚊株名称（不显示世代）、当前阶段与数量；不显示累积存活率与饲喂记录（详情见蚊笼详情页）。卡片网格一行 4 张且各卡片等宽、等高。</li>
+            <li><b>预警上卡：</b>该蚊笼的待处理预警以标签形式直接展示在卡片上（最多 2 条 + 数量汇总），点击标签进入预警中心；预警消除后标签即时消失。预警区为固定占位（无预警时留白），保证所有卡片等高对齐。</li>
+            <li><b>卡片操作：</b>「详情」进入蚊笼详情（F3），「记录」打开记录表单（F4）。</li>
+            <li><b>首页布局：</b>不设「新建蚊笼」按钮与需求链接入口；指标卡行与蚊笼卡片网格之间以分隔线区分；卡片网格默认一行 4 张（窄屏降为 2 张）。</li>
+          </ul>
+          <h4>状态与边界</h4>
+          <ul>
+            <li>暂无在养蚊笼时显示引导文案「暂无在养蚊笼，请前往「蚊笼管理」新建」。</li>
+          </ul>
+        </section>
+        <section class="feat-section" id="feature-strain-batch" data-embed="page-batches">
+          <div class="feat-head"><span class="fid">F2</span><h3>品系档案与蚊笼管理</h3><button class="goto-btn" data-goto="batches" data-region="region-batches">在原型中定位</button></div>
+          <p><b>目的：</b>建立「品系 → 蚊笼」两级台账，建笼即建账。品系档案为左侧栏独立栏目；「蚊笼管理」页仅保留蚊笼列表。</p>
+          <h4>品系档案</h4>
+          <p>卡片展示编号、种名 / 拉丁名、来源、在养蚊笼数与历史世代数。点击品系卡片可打开代系详情：<b>代系关系</b>以树状呈现（按亲代蚊笼逐层展开，一个蚊笼可扩繁出多个子代蚊笼，节点显示笼号 / 世代 / 阶段 / 数量 / 存活率，在养节点高亮，点击节点进入蚊笼详情）与<b>关联蚊笼</b>（该蚊株全部蚊笼列表）。<b>物种与蚊株信息可编辑</b>：弹窗内「编辑信息」可修改名称、蚊株、蚊株缩写、物种（拉丁名）、来源与备注，保存后即时生效。<b>蚊株缩写</b>用作该株新建蚊笼的笼号前缀（如佛山株缩写 FS，新笼自动编为 FS-01、FS-02…；缩写为空时以 C 前缀），品系卡片与弹窗均展示缩写标签；品系 CSV 增加末列「蚊株缩写」（可空，旧文件缺该列时可正常导入）。</p>
+          <p><b>数据导入 / 导出：</b>面板标题区提供「＋ 新增品系 / 导入 CSV / 导出 CSV」。导出生成真实 CSV 文件（蚊株、名称、物种编码、拉丁名、来源、备注、蚊株缩写七列，末列可空）；导入按相同列序合并，蚊株已存在则更新、否则新增，完成后提示新增 / 更新 / 跳过条数。<span class="tag assume">假设</span>。</p>
+          <h4>蚊笼列表</h4>
+          <ul>
+            <li>列：笼号、品系 / 世代、起始日期、当前阶段、当前数量、累积存活率、状态、操作。</li>
+            <li>筛选：状态（全部 / 饲养中 / 已结束 / 已废弃）与品系；无结果时显示空态卡片。</li>
+            <li>行操作：「详情」进入蚊笼详情；「记录」打开记录表单（F4）；「报告」导出单页饲养报告（F9）。</li>
+            <li><b>数据导入 / 导出：</b>标题区「导出 CSV」生成真实文件（笼号、蚊株、世代、亲代笼、起始日期、起始卵量、当前阶段、数量八列，含已结束蚊笼）；「导入 CSV」按相同列序合并，笼号已存在则更新基础字段、否则新建蚊笼（蚊株须已存在于品系档案，阶段须为合法虫态，否则该行跳过并计入提示）。</li>
+          </ul>
+          <h4>新建蚊笼</h4>
+          <ul>
+            <li>必填：品系（下拉随品系档案实时更新）、世代号（格式 F + 数字）、起始日期（默认今天，不得晚于今天）、起始卵量（≥ 1 的整数）；选填：<b>亲代蚊笼</b>（从在养蚊笼中选择，选定后世代号自动填为亲代世代 +1、来源说明自动填为「亲代蚊笼 ×× 产卵收集」）与来源说明。</li>
+            <li>笼号自动生成（C-流水号），不可编辑。</li>
+            <li>提交后自动生成「卵入笼」记录，蚊笼置为「饲养中 · 卵期」，并进入蚊笼详情。</li>
+            <li>同一品系下世代号可重复（同代分笼扩繁），重复时提示确认后允许，避免误填 [产品判断]。</li>
+          </ul>
+        </section>
+        <section class="feat-section" id="feature-batch-detail" data-embed="page-batch-detail">
+          <div class="feat-head"><span class="fid">F3</span><h3>蚊笼详情与生命周期时间线</h3><button class="goto-btn" data-goto="batch-detail" data-region="region-batch-detail">在原型中定位</button></div>
+          <p><b>目的：</b>单一蚊笼的全貌视图：现在到哪一步、指标如何、发生过什么。</p>
+          <h4>生命周期进度条</h4>
+          <p>按 卵 → L1 → L2 → L3 → L4 → 蛹 → 成虫 横向呈现；已发生阶段显示当时转入数量与转入日期（MM-DD），当前阶段高亮，后续阶段置灰显示「未记录」。格子均分整行宽度、不出现横向滚动条，完整周期一屏可见。</p>
+          <h4>指标区</h4>
+          <p>核心指标直接呈现在<b>生命周期进度卡片</b>中，不单独分组：首张卡片标注起始卵量；每张卡片显示该阶段数量与转入日期；阶段间标注<b>阶段存活率</b>（本阶段数量 ÷ 上一阶段数量）；当前阶段标注「进行中」并附<b>累积存活率</b>（当前数量 ÷ 起始卵量，口径见「规则与口径」）。孵化率 / 化蛹率 / 羽化率在「统计分析（F7）」中按蚊笼汇总呈现。</p>
+          <h4>记录时间线</h4>
+          <ul>
+            <li>全部记录按时间倒序，类型以色块图标区分；数量变化以 +/− 徽标展示，含淘汰数。</li>
+            <li>详情头部为操作入口：「＋ 新增记录」主按钮（弹出记录表单，F4，仅饲养中可用）、「结束蚊笼」（F6，仅饲养中可用），以及「编辑 / 删除」蚊笼入口。</li>
+          </ul>
+          <h4>状态与边界</h4>
+          <ul>
+            <li>已结束 / 已废弃蚊笼进入只读视图：顶部显示终态横幅（结束原因、日期），不可新增记录。</li>
+          </ul>
+        </section>
+        <section class="feat-section" id="feature-record-forms">
+          <div class="feat-head"><span class="fid">F4</span><h3>日常记录录入</h3><button class="goto-btn" data-goto="modal-record">在原型中定位</button></div>
+          <p><b>目的：</b>把四类日常动作沉淀为结构化记录，录完即算、异常即警。</p>
+          <h4>入口与表单</h4>
+          <p>入口：蚊笼详情操作按钮、蚊笼列表行内「记录」。四种类型共用一个模态，页签切换：</p>
+          <table>
+            <tr><th>类型</th><th>字段（* 必填）</th><th>关键校验</th></tr>
+            <tr><td>阶段计数</td><td>日期*、转入阶段*、计数方式、转入数量*、淘汰数、备注</td><td>日期在蚊笼起始日与今天之间；转入阶段必须为当前阶段的下一阶段；转入数量 ≥ 1；转入 + 淘汰 ≤ 当前数量</td></tr>
+            <tr><td>饲喂</td><td>日期时间*、类型*（糖水 / 幼虫饲料 / 血饲）、规格*、方式、备注</td><td>日期时间不晚于当前时刻</td></tr>
+            <tr><td>环境</td><td>日期时间*、温度*、相对湿度*、光周期、备注</td><td>温度 10–40℃、湿度 20–100%；超出预警阈值时保存后立即触发预警</td></tr>
+            <tr><td>实验处理</td><td>类型*（取样送检 / 分装扩繁 / 药物处理 / 感染饲毒 / 添加产卵杯 / 其他）、移出当期个体数、去向 / 用途、操作人、备注</td><td>移出数量 ≥ 0 且 ≤ 当前数量；分装扩繁时提示「另建同世代子笼并备注关联」</td></tr>
+          </table>
+          <h4>提交行为</h4>
+          <ul>
+            <li>校验通过 → 保存并置顶于时间线 → 蚊笼阶段 / 数量 / 指标即时更新 → 提示「记录已保存」。</li>
+            <li>满足触发条件时自动生成预警（环境超标、累积存活率低于阈值），同笼同类型待处理预警去重，不重复堆叠（检测规则见 F8）。</li>
+            <li>校验失败 → 字段级错误提示，已填内容保留。</li>
+          </ul>
+        </section>
+        <section class="feat-section" id="feature-record-ledger">
+          <div class="feat-head"><span class="fid">F5</span><h3>记录台账</h3><button class="goto-btn" data-goto="batch-detail" data-region="region-batch-detail">在原型中定位</button></div>
+          <p><b>目的：</b>完整保留饲养过程信息，形成可追溯的记录台账。</p>
+          <h4>规则</h4>
+          <ul>
+            <li>记录只增不改：阶段计数、环境、饲喂、实验处理、结束等记录一经保存即不可删除或修改。</li>
+            <li>填写错误通过新增一条说明性备注记录说明，不影响既有数据。</li>
+            <li>记录时间线按时间倒序展示，支持生成饲养记录单导出。</li>
+          </ul>
+        </section>
+        <section class="feat-section" id="feature-batch-close">
+          <div class="feat-head"><span class="fid">F6</span><h3>蚊笼结束与产出确认</h3><button class="goto-btn" data-goto="modal-close">在原型中定位</button></div>
+          <p><b>目的：</b>把「养完了」变成一条可信的产出记录，进入产能统计。</p>
+          <h4>流程</h4>
+          <ol>
+            <li>入口：蚊笼详情「结束蚊笼」，仅「饲养中」状态可用。</li>
+            <li>表单：结束日期（默认今天）、终末阶段、终末数量（≥ 0）、结束原因（产卵收获 / 实验取用 / 自然淘汰 / 全量废弃）、备注，并必须勾选「我已复核终末数量与阶段」。</li>
+            <li>提交后弹出不可逆确认条（红色），二次确认后生效。</li>
+            <li>结果：状态置为「已结束」（原因为「全量废弃」时置「已废弃」）；生成终末记录；该蚊笼待处理预警自动关闭（标记「蚊笼结束」）；详情转只读；蚊笼进入产能统计（F7）。</li>
+          </ol>
+          <h4>恢复</h4>
+          <ul><li>结束不可撤销。误结束时另建新蚊笼，并在备注中写明关联笼号。</li></ul>
+        </section>
+        <section class="feat-section" id="feature-analytics" data-embed="page-analytics">
+          <div class="feat-head"><span class="fid">F7</span><h3>统计分析</h3><button class="goto-btn" data-goto="analytics" data-region="region-analytics">在原型中定位</button></div>
+          <p><b>目的：</b>回答「养得怎么样、和什么有关、能产多少」。</p>
+          <h4>筛选</h4>
+          <p>品系（全部 / 单选）与时间范围（近 30 / 90 天、全部，按蚊笼起始日期）。</p>
+          <h4>图表与规则</h4>
+          <ul>
+            <li>图表卡片按两列排布：<b>第一排</b> 平均发育历期、阶段转化率；<b>第二排</b> 各蚊笼累积存活率、世代对比；<b>第三排</b> 月度产出趋势、各蚊株累积产出。</li>
+            <li><b>平均发育历期</b>（卵 / 幼虫期 / 蛹期，按品系分组对比）；<b>阶段转化率</b>（已结束蚊笼平均孵化率 / 化蛹率 / 羽化率，附计算口径；仅纳入阶段记录齐备的蚊笼）。</li>
+            <li><b>各蚊笼累积存活率</b>（横向条形，按存活率降序，仅纳入已结束蚊笼）。</li>
+            <li><b>各蚊株累积产出</b>（按蚊株聚合已结束蚊笼的终末成虫合计）。</li>
+            <li><b>按钮卡片入口</b>：面板底部提供「产能报表」与「环境与存活关联」两个按钮卡片，点击在弹窗中查看——产能报表为已结束蚊笼明细表；环境与存活关联为蚊笼平均饲养温度 × 累积存活率散点图（样本 ≥ 3 时呈现，页面明示「仅呈现相关性，不构成因果结论」）。</li>
+            <li><b>世代对比</b>：按品系 / 世代聚合全部蚊笼（含在养，标注「含在养」）展示累积存活率；含在养蚊笼的即时存活率仅供监测参考，正式对比以已结束蚊笼为准。</li>
+            <li>面板标题区提供「导出 CSV」，将当前图表数据导出为 CSV 文件（当前版本以示例数据生成提示）。</li>
+            <li>筛选后样本量不足 3 时，图表区显示「样本不足，暂不呈现，避免误读」；产能报表正常展示。</li>
+          </ul>
+          <p>各指标计算口径见「规则与口径」。</p>
+        </section>
+        <section class="feat-section" id="feature-alerts" data-embed="page-alerts">
+          <div class="feat-head"><span class="fid">F8</span><h3>质量预警</h3><button class="goto-btn" data-goto="alerts" data-region="region-alerts">在原型中定位</button></div>
+          <p><b>目的：</b>把异常从「事后发现」变为「发生即知」，并给出处理建议。</p>
+          <h4>检测规则</h4>
+          <table>
+            <tr><th>类型</th><th>触发条件</th><th>触发时机</th><th>级别</th></tr>
+            <tr><td>环境超标</td><td>温度 / 湿度超出阈值</td><td>环境记录保存时</td><td>警告</td></tr>
+            <tr><td>存活率偏低</td><td>累积存活率低于阈值</td><td>阶段计数保存时</td><td>警告</td></tr>
+            <tr><td>饲喂超时</td><td>卵期至 L4 期蚊笼距上次饲喂超过阈值</td><td>打开工作台时</td><td>提示</td></tr>
+            <tr><td>记录断档</td><td>在养蚊笼距上次任意记录超过阈值</td><td>打开工作台时</td><td>提示</td></tr>
+          </table>
+          <p>默认阈值见「规则与口径」；预警中心面板顶部提供<b>阈值配置区</b>，可直接修改温度 / 湿度上下限、存活率下限、饲喂间隔与记录断档上限并保存。</p>
+          <h4>预警呈现</h4>
+          <ul>
+            <li><b>预警统计</b>：面板顶部按预警类型汇总累计触发次数，随列表实时更新。</li>
+            <li>预警条目：级别、类型、关联蚊笼、触发值 / 阈值、时间、状态（待处理 / 已关闭）。</li>
+            <li>预警条目附处理建议，提示按本室饲养规程处理；预警消除后，工作台对应蚊笼卡片上的预警标签即时消失。</li>
+            <li>同笼同类型活动预警去重；阈值修改只影响此后检测，不回溯历史预警；蚊笼结束时其待处理预警自动关闭。</li>
+          </ul>
+        </section>
+        <section class="feat-section" id="feature-report">
+          <div class="feat-head"><span class="fid">F9</span><h3>单页饲养报告</h3><button class="goto-btn" data-goto="batches" data-region="region-batches">在原型中定位</button></div>
+          <p><b>目的：</b>以 AeLabStr v1.4 记录单为模板，把单笼饲养全过程导出为一页可打印、可归档的纸质 / PDF 报告，满足实验室记录留档要求。</p>
+          <h4>行为与规则</h4>
+          <ul>
+            <li>入口：蚊笼列表每行「报告」按钮（F2），所有状态的蚊笼均可导出。</li>
+            <li>报告结构（单页）：<b>表头</b>（记录单标题 + 「由 MosqCare 生成」标注）；<b>基础信息区</b>（蚊株名称、品系编号、拉丁名、世代、笼号、卵编号、起始日期、起始卵量、负责人、记录日期、当前阶段、当前数量 / 存活率共 12 字段）；<b>记录表</b>（日期 / 时间 / 类型 / 内容 / 数量 / 操作人 / 备注，按时间倒序）；<b>签名区</b>（负责人 / 复核人手写签名）。</li>
+            <li>卵编号规则：E-笼号-起始日期（如 E-FS-04-20261022），与笼号一一对应 <span class="tag assume">假设</span>。</li>
+            <li>打印输出为单页 A4：打印时隐藏页面其余内容，仅呈现报告单。</li>
+            <li>模板为 AeLabStr v1.4 忠实改编，与原模板字段差异需经本室确认 <span class="tag assume">假设</span>。</li>
+          </ul>
+        </section>
+        <section class="feat-section" id="feature-settings" data-embed="page-settings">
+          <div class="feat-head"><span class="fid">F10</span><h3>设置</h3><button class="goto-btn" data-goto="settings" data-region="region-settings">在原型中定位</button></div>
+          <p><b>目的：</b>集中管理与本机数据相关的开关；单机场景下保持最简。预警阈值配置已移至「预警中心」（F8）面板内，贴近使用场景。</p>
+          <h4>数据与备份</h4>
+          <ul>
+            <li>备份提醒开关（开启后按提醒周期提示备份；当前版本呈现开关状态，提醒调度随本地服务一起提供）。</li>
+            <li>软件默认无数据。「导入预设数据」按钮：载入内置示例数据（品系、蚊笼、记录与预警），用于快速了解功能；「删除预设数据」按钮：清空全部品系、蚊笼、记录与预警（两击确认），删除后可从 CSV 导入或重新开始。</li>
+          </ul>
+          <h4>规划中（P1）</h4>
+          <p>蚊笼标签打印、发育历期基准、血饲供体字段扩展。待本室规程确认后开放。</p>
+        </section>
+        <section class="feat-section" id="feature-about">
+          <div class="feat-head"><span class="fid">F11</span><h3>关于</h3><button class="goto-btn" data-goto="dashboard">在原型中定位</button></div>
+          <p><b>目的：</b>介绍软件定位与版本演进，便于新成员了解系统边界与更新内容。</p>
+          <h4>内容</h4>
+          <ul>
+            <li><b>软件介绍：</b>MosqCare 是面向个人 / 小实验室的蚊虫饲养记录与管理工作台，单机使用、以蚊笼为单位记录全过程，提供预警、统计与单页报告能力。</li>
+            <li><b>更新日志：</b>v1.0 首版（四类记录、预警闭环、统计分析、交互式 PRD）；v1.1 蓝色主题、以蚊笼为单位；v1.2 图形化虫态卡片、预警上卡、品系档案独立栏目；v1.3 单页饲养报告（AeLabStr 模板）、品系代系关系、世代对比、设置与关于；v1.4 卡通图标与多阶段并行显示、CSV 导入导出、预警阈值入预警中心；v1.5 IoT 接入面板（F12）；v1.6 去演示化标注、预警简化为建议制、IoT 接入指南、蚊笼编辑 / 删除、规划 Windows 安装包；v1.7 IoT 改为内置米家连接器（账号直连，HA 转可选）、默认无数据 + 导入预设数据、新增记录分组重构、去除冲正、二次元萌系图标。</li>
+            <li><b>联系与许可：</b>联系方式待定 <span class="tag tbd">待定</span>。</li>
+          </ul>
+        </section>
+        <!-- F12 -->
+        <section class="feat-section" id="feature-iot">
+          <div class="feat-head"><span class="fid">F12</span><h3>IoT 接入</h3><button class="goto-btn" data-goto="iot">在原型中定位</button></div>
+          <p><b>目的：</b>将蚊房环境与设备的采集、观察、控制纳入工作台闭环，减少手工记录、支持远程查看与自动化联动。定位在「蚊笼管理」与「统计分析」之间。</p>
+          <p><b>接入路径（详见调研报告）：</b>软件内置<b>米家连接器</b>，减少用户折腾。实现方式不是自研云接口（米家云 API 不对个人开放），而是<b>内嵌小米官方开源的米家集成内核</b>（与官方 Home Assistant 集成同源，支持个人小米账号登录）：用户在软件内登录米家账号即可自动发现与控制设备，体验上等于「账号直连」，无需安装 Home Assistant。温湿度传感器走蓝牙直连（断云可用）；智能插座经局域网协议控制；摄像头<b>建议选用固件带 RTSP 开关的型号</b>（走局域网低延迟通道）。Home Assistant 完整版为可选高级路径。<span class="tag tbd">待定</span>官方内核的开源许可用于商业打包的合规性需在正式化阶段确认。</p>
+          <h4>三个开发方向</h4>
+          <ul>
+            <li><b>温湿度传感器：</b>设备卡片展示实时温湿度、型号、连接方式与绑定蚊笼；按 15–60 分钟间隔自动采集，写入对应蚊笼的环境记录（来源标「自动采集」），并复用 F8 阈值触发预警；支持「立即采集」手动触发。</li>
+            <li><b>摄像头：</b>设备卡片展示取流就绪状态与关联蚊笼；详情弹窗经内置连接器播放实时画面（固件开启 RTSP 时走局域网通道），支持快照存证并关联蚊笼记录；无 RTSP 开关的型号不支持取流，选购需注意。</li>
+            <li><b>插座开关控制：</b>恒温加热垫、循环风扇、光周期定时等设备的远程开/关；展示用途与关联蚊笼；可与预警联动（如温度持续超下限自动开启加热垫，需人工确认后启用）。</li>
+          </ul>
+          <p><b>当前版本范围：</b>面板结构与交互已就绪（由内置示例数据驱动：米家账号登录态、同步设备、立即采集写记录、查看画面弹窗、开关切换）；真实设备链路经内置米家连接器，在后续版本接入。</p>
+        </section>
+      </div>
+      <!-- ============ 规则与口径 ============ -->
+      <div class="tab-panel" id="tab-rules">
+        <h2 class="panel-h2">四、规则与口径</h2>
+        <h3>蚊笼状态机（唯一权威定义）</h3>
+        <table>
+          <tr><th>状态</th><th>进入条件</th><th>允许操作</th><th>出口</th></tr>
+          <tr><td>饲养中</td><td>新建蚊笼（卵入笼）</td><td>全部记录类型、结束蚊笼</td><td>已结束 / 已废弃</td></tr>
+          <tr><td>已结束</td><td>结束蚊笼（原因：产卵收获 / 实验取用 / 自然淘汰）</td><td>只读查看</td><td>终态，不可逆</td></tr>
+          <tr><td>已废弃</td><td>结束蚊笼（原因：全量废弃）</td><td>只读查看</td><td>终态，不可逆</td></tr>
+        </table>
+        <h3>生命周期推进与计数口径</h3>
+        <ul>
+          <li>阶段序列固定：卵 → L1 → L2 → L3 → L4 → 蛹 → 成虫；转入阶段必须为当前阶段的下一阶段，不允许跳段。</li>
+          <li>每次阶段推进以一条阶段计数记录为准；「当前数量 = 最近一次阶段计数的转入数 − 其后实验处理移出量」。</li>
+          <li>「转入 + 淘汰 ≤ 当前数量」约束防止数量凭空增加。</li>
+        </ul>
+        <h3>计算口径（唯一权威定义）</h3>
+        <table>
+          <tr><th style="width:120px">指标</th><th>公式</th><th>备注</th></tr>
+          <tr><td>累积存活率</td><td>当前数量 ÷ 起始卵量 × 100%</td><td>已结束蚊笼取终末数量</td></tr>
+          <tr><td>孵化率</td><td>L1 转入数 ÷ 起始卵量 × 100%</td><td>存在 L1 计数时展示</td></tr>
+          <tr><td>化蛹率</td><td>蛹转入数 ÷ L4 转入数 × 100%</td><td>存在相应计数时展示</td></tr>
+          <tr><td>羽化率</td><td>成虫转入数 ÷ 蛹转入数 × 100%</td><td>存在相应计数时展示</td></tr>
+          <tr><td>阶段历期</td><td>进入下一阶段日期 − 进入本阶段日期（天）</td><td>当前阶段显示「进行中」</td></tr>
+          <tr><td>蚊笼平均温度</td><td>该蚊笼全部环境记录温度的算术平均</td><td>用于环境–存活关联图</td></tr>
+        </table>
+        <h3>预警默认阈值 <span class="tag assume">假设，可配置</span></h3>
+        <table>
+          <tr><th>项</th><th>默认值</th><th>说明</th></tr>
+          <tr><td>温度</td><td>24–28℃</td><td>超出生成「环境超标」警告</td></tr>
+          <tr><td>相对湿度</td><td>65–85%</td><td>超出生成「环境超标」警告</td></tr>
+          <tr><td>累积存活率</td><td>≥ 80%</td><td>低于生成「存活率偏低」警告</td></tr>
+          <tr><td>饲喂间隔（卵–L4 期）</td><td>24h</td><td>超时生成「饲喂超时」提示</td></tr>
+          <tr><td>记录断档</td><td>48h</td><td>在养蚊笼无任何记录超时生成提示</td></tr>
+        </table>
+        <p>字段级校验规则已在 F4 表格中定义，此处不重复。笼号规则：C-两位流水号，系统自动生成。</p>
+        <h3>数据与备份</h3>
+        <ul>
+          <li>数据存储于本机；CSV 导出内置于各面板，备份提醒开关见「设置」（F10）。<span class="tag assume">假设</span></li>
+          <li>记录一经保存永久保留，作为数据追溯依据。</li>
+          <li>「结束 / 废弃」为终态，不提供重开；误操作的恢复方式见 F6。</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+</div>
+<script src="data/preset/demo.js"></script>
+<script src="script/i18n.js"></script>
+<script src="script/algo/registry.js"></script>
+<script src="script/algo/activity.v0.1.js"></script>
+<script src="script/persistence.js"></script>
+<script src="script/app.js"></script>
+</bo
