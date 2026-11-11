@@ -23,6 +23,7 @@ var batches = [
     {d:'2026-11-02', t:'stage', from:'—', to:'卵期', n:600, dead:0, method:'全数', after:{stage:'卵期', count:600}, note:'亲代蚊笼产卵收集'},
     {d:'2026-11-02', t:'env', tm:'15:30', temp:26.7, hum:76, photo:'14:10'},
     {d:'2026-11-04', t:'stage', from:'卵期', to:'L1期', n:588, dead:0, method:'全数', after:{stage:'L1期', count:588}, note:'未孵化卵 12 粒'},
+    {d:'2026-11-04', t:'env', tm:'08:20', temp:27.1, hum:75, photo:'14:10'},
     {d:'2026-11-04', t:'feed', tm:'06:00', type:'幼虫饲料', spec:'磨碎鱼饲料 0.4g', way:'撒喂'}
    ]},
   {id:'C-08', strain:'S2', gen:'F5', parent:'C-06', start:'2026-10-30', eggs:800, stage:'L3期', count:745, coStages:['L4期'], status:'rearing', lastFeed:'2026-11-05 07:00',
@@ -66,6 +67,7 @@ var batches = [
     {d:'2026-10-18', t:'feed', tm:'09:00', type:'糖水', spec:'10% 蔗糖', way:'棉球更换'},
     {d:'2026-10-26', t:'feed', tm:'09:30', type:'血饲', spec:'小鼠麻醉血饲', way:'人工膜'},
     {d:'2026-10-29', t:'treat', type:'添加产卵杯', out:0, to:'预收 F5 卵', by:'当班饲养员'},
+    {d:'2026-11-02', t:'feed', tm:'09:30', type:'血饲', spec:'小鼠麻醉血饲', way:'人工膜'},
     {d:'2026-11-03', t:'feed', tm:'09:00', type:'糖水', spec:'10% 蔗糖', way:'棉球更换'}
    ]},
   {id:'FS-03', strain:'S1', gen:'F11', parent:'FS-02', start:'2026-09-15', eggs:500, stage:'成虫期', count:389, status:'closed', avgT:26.6, dur:{egg:2, larva:9, pupa:2},
@@ -119,5 +121,39 @@ var alerts = [
   {id:'A2', level:'info', type:'饲喂超时', batch:'FS-05', msg:'距上次饲喂 26h，超过间隔上限 24h', detail:'触发 26h / 阈值 ≤24h（卵–L4 期蚊笼）', at:'2026-11-05 08:00', state:'open'},
   {id:'A3', level:'warn', type:'存活率偏低', batch:'FS-03', msg:'累积存活率 77.8%，低于阈值 80%', detail:'触发 77.8% / 阈值 ≥80%', at:'2026-10-18 09:20', state:'done', action:'更换饲养水并降低幼虫密度', by:'当班饲养员', atDone:'2026-10-18 15:00'}
 ];
-return {strains:strains, batches:batches, alerts:alerts, seq:seq, alertSeq:alertSeq, currentBatch:'FS-04'};
+// ---------- 示例监测会话（v3.2：供活动分析 / 昼夜节律演示） ----------
+// 确定性伪随机（种子），保证每次导入演示数据一致
+var sessSeq = 0, sessRand = 42;
+function srnd(){ sessRand = (sessRand * 1103515245 + 12345) % 2147483648; return sessRand / 2147483648; }
+function mkSess(cage, h, m, durSec, base){
+  sessSeq++;
+  var samples = [];
+  // 白纹伊蚊昼行性：07–10 与 16–19 高峰，暗相低活动的双峰活跃度基线
+  function baseAI(hour){
+    var phase = Math.cos((hour - 8.5) * Math.PI / 5.5);        // 双峰近似
+    return Math.max(2, base * (0.45 + 0.55 * Math.max(0, phase)));
+  }
+  for (var t = 0; t < durSec; t++){
+    var hour = h + m / 60 + t / 3600;
+    var ai = baseAI(hour % 24) * (0.85 + 0.3 * srnd());
+    samples.push({t: t, ai: Math.round(ai * 100) / 100, cnt: Math.max(0, Math.round(ai / 6 * 10) / 10)});
+  }
+  var ais = samples.map(function(s){ return s.ai; });
+  return {
+    id: 'ACT-' + (sessSeq < 10 ? '0' + sessSeq : sessSeq),
+    cam: 'Cam-1', cage: cage, note: '演示数据',
+    start: (h < 10 ? '0' + h : h) + ':' + (m < 10 ? '0' + m : m),
+    dur: durSec, samples: samples,
+    meanAI: ais.reduce(function(a, b){ return a + b; }, 0) / ais.length,
+    peakAI: Math.max.apply(null, ais),
+    meanCnt: samples.reduce(function(a, b){ return a + b.cnt; }, 0) / samples.length
+  };
+}
+var demoSessions = [
+  mkSess('FS-04', 6, 30, 90, 42), mkSess('FS-04', 9, 15, 90, 58),
+  mkSess('FS-04', 13, 0, 90, 30), mkSess('FS-04', 16, 45, 90, 55),
+  mkSess('FS-04', 20, 30, 90, 14), mkSess('FS-04', 23, 10, 90, 8),
+  mkSess('C-06', 7, 40, 90, 36), mkSess('C-06', 14, 20, 90, 26), mkSess('C-06', 21, 50, 90, 11)
+];
+return {strains:strains, batches:batches, alerts:alerts, seq:seq, alertSeq:alertSeq, currentBatch:'FS-04', sessions:demoSessions};
 }

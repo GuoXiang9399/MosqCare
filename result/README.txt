@@ -1,4 +1,4 @@
-MosqCare v2.2 · result/ 结果留存目录
+MosqCare v3.0 · result/ 结果留存目录
 
 - videos/    监测视频留存（停止记录后自动写入，命名：MosqRec_<蚊笼号>_<日期-时间>.webm）
 - exports/   导出结果留存（CSV 导出时自动同步写入本目录）

@@ -1,6 +1,6 @@
-// ================= MosqCare v2.1 应用逻辑（v2.0 单文件迁出） =================
+// ================= MosqCare v3.0 应用逻辑 =================
 var strains = {}, batches = [], alerts = [], seq = 1, alertSeq = 1;
-var thresholds = {tempLow:24, tempHigh:28, humLow:65, humHigh:85, surv:80, feedGap:24, recGap:48};
+var thresholds = {tempLow:24, tempHigh:28, humLow:65, humHigh:85, co2High:1000, surv:80, feedGap:24, recGap:48};
 var state = {page:'dashboard', currentBatch:null, rtab:'feed', modalBatch:null, ana:{strain:'all', range:'all'}, nbConfirmed:false};
 // ================= 工具 =================
 function $(s){ return document.querySelector(s); }
@@ -48,7 +48,7 @@ function navigate(page){
   if (page === 'alerts') renderAlerts();
   if (page === 'settings') renderSettings();
   if (page === 'alerts') renderSettings();
-  if (page === 'iot'){ renderIot(); refreshLocDevices(); renderLocal(); }
+  if (page === 'iot'){ renderIot(); refreshLocDevices(); renderLocal(); refreshSerialPorts(); renderSerial(); }
 }
 function openBatch(id){ closeModal(); state.currentBatch = id; navigate('batch-detail'); }
 function switchTab(name){
@@ -339,6 +339,7 @@ function renderDetail(){ MCStore.save();
   if (!b){
     $('#bd-header').innerHTML = '<div class="empty">' + tr('暂无蚊笼：请先在「品系档案」导入或新建品系，再于「蚊笼管理」新建蚊笼。') + '</div>';
     $('#bd-stepper').innerHTML = '';
+    $('#bd-forecast').innerHTML = '';
     $('#bd-timeline').innerHTML = '';
     return;
   }
@@ -359,6 +360,7 @@ function renderDetail(){ MCStore.save();
       : '') + '</div></div>';
   $('#bd-header').innerHTML = head;
   renderStepper(b);
+  renderForecastCard(b);
   var items = [];
   for (var j = b.records.length - 1; j >= 0; j--) items.push(tlItem(b, b.records[j], j));
   $('#bd-timeline').innerHTML = items.join('');
@@ -556,7 +558,10 @@ var ALERT_TIPS = {
   '环境超标': '调整空调 / 加湿除湿设备；如已接入 IoT 恒温加热垫或循环风扇，可远程开启辅助调节（见「IoT 接入」）。',
   '存活率偏低': '检查饲料与水质，排查饲养密度与温度；异常个体单独隔离观察。',
   '饲喂超时': '尽快补喂，并核对饲喂计划与记录习惯。',
-  '记录断档': '补记当日观察结果，避免台账断档影响统计口径。'
+  '记录断档': '补记当日观察结果，避免台账断档影响统计口径。',
+  '串口监测CO₂': 'CO₂ 偏高：优先通风换气（开窗 / 机械通风），核对饲养密度与人员进出；长期偏高建议接入 CO₂ 变送器联动通风。',
+  '发育预测': '预计随时羽化：提前准备羽化笼、糖水与实验排期；羽化后转入成虫笼并记录阶段。',
+  '发育偏差': '积温轨道与实际阶段推进不符：优先核对环境温度与水温（水温才是幼虫实际经历的温度），再排查密度、饲料与水质；积累已结束蚊笼后在「统计分析 → 科研分析」本地校准 T₀/K。'
 };
 function renderAlerts(){ MCStore.save();
   var stMap = {};
@@ -581,7 +586,7 @@ function renderAlerts(){ MCStore.save();
     if (a.state === 'open'){
       body = '<div class="alert-meta" style="margin-top:8px"><b>' + tr('处理建议：') + '</b>' + tr(ALERT_TIPS[a.type] || '按本室饲养规程处理，必要时结合 IoT 设备辅助调节。') + '</div>';
     }
-    html += '<div class="alert-card ' + a.level + '"><div class="alert-head"><span class="lvl ' + (a.level === 'warn' ? 'lvl-warn' : 'lvl-crit') + '">' + (a.level === 'warn' ? tr('警告') : tr('提示')) + '</span><b>' + tr(a.type) + '</b>' +
+    html += '<div class="alert-card ' + a.level + '"><div class="alert-head"><span class="lvl ' + (a.level === 'warn' ? 'lvl-warn' : (a.level === 'info' ? 'lvl-info' : 'lvl-crit')) + '">' + (a.level === 'warn' ? tr('警告') : tr('提示')) + '</span><b>' + tr(a.type) + '</b>' +
       '<a href="#" data-open-batch="' + a.batch + '" onclick="return false" style="color:#1d4ed8;font-weight:600">' + a.batch + '</a>' + stateBadge +
       '<span class="alert-meta" style="margin-left:auto">' + a.at + '</span></div>' +
       '<div class="alert-msg">' + a.msg + '</div><div class="alert-meta">' + a.detail + '</div>' + body + '</div>';
@@ -589,7 +594,7 @@ function renderAlerts(){ MCStore.save();
   $('#alert-list').innerHTML = html;
 }
 function saveThresholds(){
-  var t = {tempLow:+val('th-temp-low'), tempHigh:+val('th-temp-high'), humLow:+val('th-hum-low'), humHigh:+val('th-hum-high'), surv:+val('th-surv'), feedGap:+val('th-feed-gap'), recGap:+val('th-rec-gap')};
+  var t = {tempLow:+val('th-temp-low'), tempHigh:+val('th-temp-high'), humLow:+val('th-hum-low'), humHigh:+val('th-hum-high'), co2High:+val('th-co2-high') || 1000, surv:+val('th-surv'), feedGap:+val('th-feed-gap'), recGap:+val('th-rec-gap')};
   if (t.tempLow >= t.tempHigh){ toast(tr('保存失败：温度下限须小于上限')); return; }
   if (t.humLow >= t.humHigh){ toast(tr('保存失败：湿度下限须小于上限')); return; }
   if (!(t.surv > 0 && t.surv <= 100)){ toast(tr('保存失败：存活率阈值需在 0–100 之间')); return; }
@@ -609,6 +614,7 @@ function icoSvg(kind, color){
 }
 function iotEmpty(txt){ return '<div class="empty" style="grid-column:1/-1">' + txt + '</div>'; }
 function renderIot(){
+  serLoadDevs(); renderSerDevs(); initThrPreset();
   $('#iot-sensors').innerHTML = iotSensors.length ? iotSensors.map(function(s){
     var b = s.cage ? getBatch(s.cage) : null;
     return '<div class="cage-card"><div class="cc-top"><div class="cc-ico" style="width:46px;height:46px">' + icoSvg('sensor') + '</div><div class="cc-info">' +
@@ -664,6 +670,715 @@ function iotPlug(id){
   renderIot();
   toast(T(p.id + ' 已' + (p.on ? '开启' : '关闭') + '（' + p.use.split(' · ')[0] + '）', p.id + (p.on ? ' switched on' : ' switched off') + ' (' + p.use.split(' · ')[0] + ')'));
 }
+// ================= v3.0/v3.1：USB 串口环境监测（USB-RS485 + Modbus RTU · 多探头） =================
+var serCfg = {port: '', baud: 115200};
+var serDemo = false;
+var serState = {on: false, timer: 0, last: '—', err: '', readings: [], t0: null, chain: Promise.resolve(), sugKey: '', sugCount: 0};
+var serFile = '';
+var serDevs = []; // 多探头：同一 RS485 总线手拉手并联，各自不同从站地址 [{id, name, addr, type, start, scale}]；HID 直插设备带 {hid: true, vid, pid}
+// v3.4：Modbus 扩展参数设备类型（起始地址/倍率为厂商常见默认值，可按设备修改；寄存器数由类型定死，本期不支持 32 位双寄存器）
+var SER_TYPES = {
+  th:  {id: 'th',  label: '温湿度',  start: 0, count: 2, scale: 0.1, unit: ''},
+  co2: {id: 'co2', label: 'CO₂',    start: 0, count: 1, scale: 1,   unit: 'ppm'},
+  lux: {id: 'lux', label: '光照度', start: 0, count: 1, scale: 1,   unit: 'lx'},
+  pa:  {id: 'pa',  label: '负压',    start: 0, count: 1, scale: 0.1, unit: 'Pa'}
+};
+var hidLast = []; // 最近一次 HID 枚举结果（供「添加设备」按索引取详情）
+function serPad(n){ return (n < 10 ? '0' : '') + n; }
+function serNow(){ var d = new Date(); return serPad(d.getHours()) + ':' + serPad(d.getMinutes()) + ':' + serPad(d.getSeconds()); }
+function serI16(v){ v = v | 0; return v > 32767 ? v - 65536 : v; }
+function serParse(dev, regs){
+  var t = SER_TYPES[dev.type || 'th'] || SER_TYPES.th;
+  var s = dev.scale != null && dev.scale > 0 ? dev.scale : t.scale;
+  if (t.id === 'th') return {temp: regs[1] * 0.1, hum: regs[0] * 0.1}; // 沿用 SHT 系列默认映射：0x0000 湿度、0x0001 温度（0.1 倍率）
+  if (t.id === 'pa') return {pa: serI16(regs[0]) * s};
+  var o = {}; o[t.id] = regs[0] * s; return o;
+}
+function serNormDevs(){
+  serDevs.forEach(function(d){
+    if (!SER_TYPES[d.type]) d.type = 'th';
+    var t = SER_TYPES[d.type];
+    if (d.start == null) d.start = t.start;
+    if (d.scale == null) d.scale = t.scale;
+    if (d.hid) d.hidKey = null; // 刷新后句柄需重开
+  });
+}
+function serLoadDevs(){
+  try { serDevs = JSON.parse(localStorage.getItem('mosq.serDevs') || '') || []; } catch(e){ serDevs = []; }
+  if (!serDevs.length) serDevs = [{id: 'D1', name: '探头 1', addr: 1, type: 'th', start: 0, scale: 0.1}];
+  serNormDevs();
+}
+function serSaveDevs(){ try { localStorage.setItem('mosq.serDevs', JSON.stringify(serDevs.map(function(d){ return {id: d.id, name: d.name, addr: d.addr, type: d.type, start: d.start, scale: d.scale, hid: d.hid || undefined, vid: d.vid, pid: d.pid, hidPath: d.hidPath}; }))); } catch(e){} }
+function serDevAdd(){
+  if (serState.on){ toast(tr('监测中不可修改探头列表')); return; }
+  var name = ($('#ser-dev-name').value || '').trim() || ('探头 ' + (serDevs.length + 1));
+  var addr = parseInt($('#ser-dev-addr').value, 10);
+  if (!(addr >= 1 && addr <= 247)){ toast(tr('从站地址需在 1–247 之间')); return; }
+  if (serDevs.some(function(d){ return !d.hid && d.addr === addr; })){ toast(tr('该从站地址已存在')); return; }
+  var type = $('#ser-dev-type') ? $('#ser-dev-type').value : 'th';
+  var t = SER_TYPES[type] || SER_TYPES.th;
+  var start = parseInt($('#ser-dev-start') ? $('#ser-dev-start').value : '', 10);
+  if (!(start >= 0)) start = t.start;
+  var scale = parseFloat($('#ser-dev-scale') ? $('#ser-dev-scale').value : '');
+  if (!(scale > 0)) scale = t.scale;
+  serDevs.push({id: 'D' + addr + '-' + (serDevs.length + 1), name: name, addr: addr, type: type, start: start, scale: scale});
+  $('#ser-dev-name').value = '';
+  serSaveDevs(); renderSerDevs();
+  toast(tr('探头已添加：') + name + tr(' · 从站地址 ') + addr + T(' · ' + t.label, ' · ' + t.label));
+}
+// v3.4：TEMPer USB HID 直插设备
+function refreshHidDevs(){
+  var sel = $('#hid-sel');
+  if (!sel || serState.on) return;
+  if (!MC_DISK){
+    sel.innerHTML = '<option value="">' + tr('浏览器预览不支持 HID') + '</option>';
+    return;
+  }
+  mcInvoke('mc_hid_list', {}).then(function(list){
+    hidLast = list || [];
+    if (hidLast.length){
+      sel.innerHTML = '<option value="">' + tr('选择 HID 设备…') + '</option>' + hidLast.map(function(p, i){
+        var hex = function(x){ return x.toString(16).toUpperCase(); };
+        return '<option value="' + i + '">' + esc((p.product || 'TEMPer') + ' (' + hex(p.vid) + ':' + hex(p.pid) + (p.serial ? ' · ' + p.serial : '') + ')') + '</option>';
+      }).join('');
+    } else {
+      sel.innerHTML = '<option value="">' + tr('未发现 TEMPer 设备：请插入 USB 温度计') + '</option>';
+    }
+  }).catch(function(e){
+    sel.innerHTML = '<option value="">' + esc(String(e)) + '</option>';
+  });
+}
+function serHidAdd(){
+  if (serState.on){ toast(tr('监测中不可修改探头列表')); return; }
+  if (!MC_DISK){ toast(tr('桌面版支持 USB 直插温度计（TEMPer 系列）')); return; }
+  var idx = parseInt($('#hid-sel').value, 10);
+  if (!(idx >= 0) || !hidLast[idx]){ toast(tr('请先刷新并选择 TEMPer 设备')); return; }
+  var p = hidLast[idx];
+  if (serDevs.some(function(d){ return d.hid && d.vid === p.vid && d.pid === p.pid && d.serial === p.serial; })){ toast(tr('该设备已添加')); return; }
+  var name = (p.product || 'TEMPer').slice(0, 24);
+  serDevs.push({id: 'H' + (serDevs.length + 1) + '-' + p.pid, name: name, hid: true, vid: p.vid, pid: p.pid, serial: p.serial || '', hidPath: p.path || ''});
+  serSaveDevs(); renderSerDevs();
+  toast(tr('HID 设备已添加：') + name);
+}
+function serDevDel(id){
+  if (serState.on){ toast(tr('监测中不可修改探头列表')); return; }
+  serDevs = serDevs.filter(function(d){ return d.id !== id; });
+  if (!serDevs.length) serDevs = [{id: 'D1', name: '探头 1', addr: 1, type: 'th', start: 0, scale: 0.1}];
+  serSaveDevs(); renderSerDevs();
+}
+function renderSerDevs(){
+  var box = $('#ser-devs');
+  if (!box) return;
+  box.innerHTML = serDevs.map(function(d){
+    var t = SER_TYPES[d.type || 'th'] || SER_TYPES.th;
+    var label = d.hid ? T('USB 直插', 'USB HID') : ' @ ' + d.addr + ' · ' + tr(t.label);
+    return '<span class="tag" style="background:#eff6ff;color:#1d4ed8" title="' + (d.hid ? esc(T('TEMPer USB HID 直插', 'TEMPer USB HID')) : esc(T('起始地址 0x' + (d.start || 0).toString(16).toUpperCase() + ' · 倍率 ' + d.scale, 'Start 0x' + (d.start || 0).toString(16).toUpperCase() + ' · scale ' + d.scale))) + '">' + esc(d.name) + label +
+      (serState.on ? '' : '<a href="#" onclick="serDevDel(\'' + d.id + '\');return false" style="color:#dc2626;margin-left:5px;text-decoration:none" title="' + tr('删除') + '">×</a>') + '</span>';
+  }).join('');
+}
+function refreshSerialPorts(){
+  var sel = $('#ser-port-sel');
+  if (!sel || serState.on) return;
+  if (!MC_DISK){
+    sel.innerHTML = '<option value="">' + tr('浏览器预览：请勾选「模拟读数」体验') + '</option>';
+    return;
+  }
+  mcInvoke('mc_serial_list', {}).then(function(list){
+    list = list || [];
+    if (list.length){
+      sel.innerHTML = '<option value="">' + tr('选择串口…') + '</option>' + list.map(function(p){
+        return '<option value="' + esc(p.name) + '">' + esc(p.name + (p.desc ? ' · ' + p.desc : '')) + '</option>';
+      }).join('');
+    } else {
+      sel.innerHTML = '<option value="">' + tr('未发现串口设备：请插入 USB-RS485 适配器') + '</option>';
+    }
+  }).catch(function(e){
+    sel.innerHTML = '<option value="">' + esc(String(e)) + '</option>';
+  });
+}
+function toggleSerial(){ if (serState.on){ serialStop(); } else { serialStart(); } }
+function serialStart(){
+  var demo = $('#ser-demo').checked;
+  var src = $('#ser-src') ? $('#ser-src').value : 'rs485';
+  var port = $('#ser-port-sel').value;
+  var baud = parseInt($('#ser-baud').value, 10) || 9600;
+  if (!demo && src === 'rs485' && !port){ toast(tr('请选择串口，或勾选「模拟读数」')); return; }
+  if (!serDevs.length){ toast(tr('请先在探头列表添加探头')); return; }
+  if (!demo && src === 'hid' && !serDevs.some(function(d){ return d.hid; })){ toast(tr('USB 直插模式需先添加 HID 设备')); return; }
+  if (demo){
+    serCfg = {port: tr('模拟串口'), baud: baud, src: 'demo'};
+    serDemo = true;
+    serialBegin();
+    toast(tr('模拟读数已启动（用于无硬件演示）'));
+  } else if (src === 'hid'){ // v3.4：TEMPer USB HID 直插（句柄在 serialBegin 逐个打开）
+    serCfg = {port: tr('USB 直插（HID）'), baud: 0, src: 'hid'};
+    serDemo = false;
+    serialBegin();
+    toast(tr('已连接 USB 直插设备（HID）'));
+  } else {
+    mcInvoke('mc_serial_open', {port: port, baud: baud}).then(function(){
+      serCfg = {port: port, baud: baud, src: 'rs485'};
+      serDemo = false;
+      serialBegin();
+      toast(tr('已连接 ') + port + T(' · ' + serDevs.length + ' 个探头', ' · ' + serDevs.length + ' probes'));
+    }).catch(function(e){ toast(tr('连接失败：') + e); });
+  }
+}
+function serialBegin(){
+  var d = new Date();
+  serState = {on: true, timer: 0, last: '—', err: '', readings: [], t0: d, chain: Promise.resolve(), sugKey: '', sugCount: 0, sugTexts: []};
+  serDevs.forEach(function(dev, i){ dev._t = 25.6 + i * 0.7; dev._h = 72 + i * 3; dev.hidKey = null; }); // 模拟基线：各探头错开
+  serFile = 'env_' + d.getFullYear() + serPad(d.getMonth() + 1) + serPad(d.getDate()) + '_' + serPad(d.getHours()) + serPad(d.getMinutes()) + serPad(d.getSeconds()) + '.json';
+  $('#ser-btn').textContent = tr('断开');
+  renderSerDevs();
+  var kick = Promise.resolve();
+  if (MC_DISK && !serDemo){ // v3.4：HID 直插设备先开句柄（path 在枚举时记录）
+    serDevs.forEach(function(dev){
+      if (!dev.hid || !dev.hidPath) return;
+      kick = kick.then(function(){
+        return mcInvoke('mc_hid_open', {path: dev.hidPath}).then(function(key){ dev.hidKey = key; }).catch(function(e){
+          serState.err = dev.name + ': ' + String(e);
+        });
+      });
+    });
+  }
+  kick.then(function(){
+    serialTick();
+    serState.timer = setInterval(serialTick, 5000);
+    renderSerial();
+  });
+}
+function serialTick(){
+  var stamp = serNow();
+  if (serDemo){
+    serDevs.forEach(function(dev){
+      var type = dev.hid ? 'th' : (dev.type || 'th');
+      if (type === 'co2'){
+        dev._c = Math.round(Math.max(380, Math.min(2200, (dev._c || 650) + (Math.random() - 0.5) * 90)));
+        serAccept({t: stamp, dev: dev.id, name: dev.name, addr: dev.addr, co2: dev._c});
+      } else if (type === 'lux'){
+        dev._l = Math.round(Math.max(0, Math.min(20000, (dev._l || 300) + (Math.random() - 0.5) * 40)));
+        serAccept({t: stamp, dev: dev.id, name: dev.name, addr: dev.addr, lux: dev._l});
+      } else if (type === 'pa'){
+        dev._p = Math.round(Math.max(-50, Math.min(50, (dev._p || 5) + (Math.random() - 0.5) * 4)) * 10) / 10;
+        serAccept({t: stamp, dev: dev.id, name: dev.name, addr: dev.addr, pa: dev._p});
+      } else {
+        dev._t = Math.round(Math.max(18, Math.min(34, dev._t + (Math.random() - 0.5) * 0.8)) * 10) / 10;
+        dev._h = Math.round(Math.max(40, Math.min(95, dev._h + (Math.random() - 0.5) * 2.5)));
+        serAccept({t: stamp, dev: dev.id, name: dev.name, addr: dev.addr, temp: dev._t, hum: dev._h});
+      }
+    });
+    serState.last = stamp;
+    serUpdateSuggest();
+    renderSerial();
+    return;
+  }
+  // 同一 RS485 总线为半双工：按列表顺序轮询（Promise 链，不可并发）；HID 直插设备走独立通道，混挂时各取各的
+  serDevs.forEach(function(dev){
+    serState.chain = serState.chain.then(function(){
+      if (serCfg.src === 'hid' && !dev.hid) return; // HID 会话只读 HID 设备
+      if (dev.hid){ // v3.4：TEMPer USB HID 读数（temp/hum，缺失通道为 null）
+        if (!dev.hidKey) return;
+        return mcInvoke('mc_hid_read', {key: dev.hidKey}).then(function(res){
+          if (res && (res.temp != null || res.hum != null)){
+            serAccept({t: serNow(), dev: dev.id, name: dev.name, hid: true, temp: res.temp, hum: res.hum});
+          }
+          serState.err = '';
+        }).catch(function(e){ serState.err = dev.name + ': ' + String(e); });
+      }
+      var t = SER_TYPES[dev.type || 'th'] || SER_TYPES.th;
+      return mcInvoke('mc_serial_read', {port: serCfg.port, slave: dev.addr, start: dev.start, count: t.count}).then(function(regs){
+        var v = serParse(dev, regs); // SHT 系列默认映射见 serParse；四类设备各自解析
+        serAccept({t: serNow(), dev: dev.id, name: dev.name, addr: dev.addr, temp: v.temp, hum: v.hum, co2: v.co2, lux: v.lux, pa: v.pa});
+        serState.err = '';
+      }).catch(function(e){
+        serState.err = dev.name + ' @' + dev.addr + ': ' + String(e);
+      });
+    });
+  });
+  serState.chain.then(function(){ serUpdateSuggest(); renderSerial(); });
+}
+function serAccept(r){
+  var hasData = [r.temp, r.hum, r.co2, r.lux, r.pa].some(function(v){ return v != null && !isNaN(v); });
+  if (!hasData) return; // v3.4：任一通道有值即可入库（CO₂/光照/负压设备无温湿度）
+  serState.last = r.t;
+  serState.readings.push(r);
+  var alerted = false;
+  var src = r.hid ? T('USB 直插设备', 'USB HID device') : r.addr + tr(' 号从站');
+  if (r.temp != null && !isNaN(r.temp) && (r.temp > thresholds.tempHigh || r.temp < thresholds.tempLow)){
+    alerted = addAlert('串口监测温度', T('探头「' + r.name + '」温度 ' + fmt1(r.temp) + '℃ 超出阈值 ' + thresholds.tempLow + '–' + thresholds.tempHigh + '℃', 'Probe "' + r.name + '" temperature ' + fmt1(r.temp) + '℃ outside threshold ' + thresholds.tempLow + '–' + thresholds.tempHigh + '℃'), 'warn', '', T(src + ' · 触发 ' + fmt1(r.temp) + '℃ / 阈值 ' + thresholds.tempLow + '–' + thresholds.tempHigh + '℃（' + serCfg.port + '）', src + ' · triggered ' + fmt1(r.temp) + '℃ / threshold ' + thresholds.tempLow + '–' + thresholds.tempHigh + '℃ (' + serCfg.port + ')'));
+  }
+  if (r.hum != null && !isNaN(r.hum) && (r.hum > thresholds.humHigh || r.hum < thresholds.humLow)){
+    alerted = addAlert('串口监测湿度', T('探头「' + r.name + '」湿度 ' + r.hum + '% 超出阈值 ' + thresholds.humLow + '–' + thresholds.humHigh + '%', 'Probe "' + r.name + '" humidity ' + r.hum + '% outside threshold ' + thresholds.humLow + '–' + thresholds.humHigh + '%'), 'warn', '', T(src + ' · 触发 ' + r.hum + '% / 阈值 ' + thresholds.humLow + '–' + thresholds.humHigh + '%（' + serCfg.port + '）', src + ' · triggered ' + r.hum + '% / threshold ' + thresholds.humLow + '–' + thresholds.humHigh + '% (' + serCfg.port + ')'));
+  }
+  if (r.co2 != null && !isNaN(r.co2) && r.co2 > thresholds.co2High){ // v3.4：CO₂ 超标预警
+    alerted = addAlert('串口监测CO₂', T('探头「' + r.name + '」CO₂ ' + r.co2 + ' ppm 超过阈值 ' + thresholds.co2High + ' ppm', 'Probe "' + r.name + '" CO₂ ' + r.co2 + ' ppm above threshold ' + thresholds.co2High + ' ppm'), 'warn', '', T(src + ' · 触发 ' + r.co2 + ' ppm / 阈值 ' + thresholds.co2High + ' ppm（' + serCfg.port + '）', src + ' · triggered ' + r.co2 + ' ppm / threshold ' + thresholds.co2High + ' ppm (' + serCfg.port + ')'));
+  }
+  if (alerted) MCStore.save();
+  serialPersist();
+}
+function serialPersist(){
+  if (!MC_DISK || serDemo || !serFile || !serState.readings.length) return;
+  var payload = {
+    kind: 'usb-serial-env', port: serCfg.port, baud: serCfg.baud,
+    devices: serDevs.map(function(d){ return {name: d.name, addr: d.addr, type: d.hid ? 'hid-th' : (d.type || 'th'), start: d.start, scale: d.scale, hid: d.hid || undefined}; }), // v3.4：留存类型/映射，便于复现
+    started: serState.t0 ? serState.t0.toISOString() : '',
+    count: serState.readings.length, readings: serState.readings
+  };
+  mcInvoke('mc_write', {rel: 'result/' + serFile, content: JSON.stringify(payload)}).catch(function(){});
+}
+function serialStop(){
+  if (!serState.on) return;
+  clearInterval(serState.timer);
+  serState.timer = 0;
+  serState.on = false;
+  var port = serCfg.port, n = serState.readings.length;
+  serialPersist();
+  if (!serDemo && MC_DISK){
+    serDevs.forEach(function(dev){ if (dev.hid && dev.hidKey){ mcInvoke('mc_hid_close', {key: dev.hidKey}).catch(function(){}); dev.hidKey = null; } }); // v3.4：释放 HID 句柄
+    if (serCfg.src === 'rs485' && port) mcInvoke('mc_serial_close', {port: port}).catch(function(){});
+  }
+  $('#ser-btn').textContent = tr('连接');
+  renderSerDevs();
+  renderSerial();
+  toast(T('监测已停止，本次共 ' + n + ' 条读数' + (!serDemo && MC_DISK ? '，已留存 result/' + serFile : ''), 'Monitoring stopped — ' + n + ' readings captured' + (!serDemo && MC_DISK ? ' (saved to result/' + serFile + ')' : '')));
+}
+// v3.4：继电器联动建议（仅页内联提示，不下发任何控制指令）；连续两轮命中同一组合才展示
+function serSuggest(){
+  var latest = {};
+  serState.readings.forEach(function(r){ latest[r.dev] = r; });
+  var rules = [];
+  serDevs.forEach(function(dev){
+    var r = latest[dev.id];
+    if (!r) return;
+    if (r.temp != null && !isNaN(r.temp) && r.temp > thresholds.tempHigh) rules.push({k: dev.id + ':hot', x: T('「' + dev.name + '」温度偏高（' + fmt1(r.temp) + '℃）→ 建议开启风扇/空调降温', '"' + dev.name + '" temp high (' + fmt1(r.temp) + '℃) → consider fan/AC cooling')});
+    else if (r.temp != null && !isNaN(r.temp) && r.temp < thresholds.tempLow) rules.push({k: dev.id + ':cold', x: T('「' + dev.name + '」温度偏低（' + fmt1(r.temp) + '℃）→ 建议开启加热保温', '"' + dev.name + '" temp low (' + fmt1(r.temp) + '℃) → consider heating')});
+    if (r.hum != null && !isNaN(r.hum) && r.hum < thresholds.humLow) rules.push({k: dev.id + ':dry', x: T('「' + dev.name + '」湿度偏低（' + r.hum + '%）→ 建议开启加湿', '"' + dev.name + '" RH low (' + r.hum + '%) → consider humidifying')});
+    else if (r.hum != null && !isNaN(r.hum) && r.hum > thresholds.humHigh) rules.push({k: dev.id + ':wet', x: T('「' + dev.name + '」湿度偏高（' + r.hum + '%）→ 建议开启通风除湿', '"' + dev.name + '" RH high (' + r.hum + '%) → consider dehumidifying')});
+    if (r.co2 != null && !isNaN(r.co2) && r.co2 > thresholds.co2High) rules.push({k: dev.id + ':co2', x: T('「' + dev.name + '」CO₂ 偏高（' + r.co2 + ' ppm）→ 建议通风换气', '"' + dev.name + '" CO₂ high (' + r.co2 + ' ppm) → consider ventilation')});
+  });
+  return rules;
+}
+function serUpdateSuggest(){
+  var rules = serSuggest();
+  var key = rules.map(function(x){ return x.k; }).join('|'); // 键只含规则命中，不含数值：数值漂移不影响连续计数
+  if (key && key === serState.sugKey) serState.sugCount++;
+  else { serState.sugKey = key; serState.sugCount = key ? 1 : 0; }
+  serState.sugTexts = rules.map(function(x){ return x.x; });
+}
+function renderSerial(){
+  var live = $('#ser-live');
+  if (!live) return;
+  var btn = $('#ser-btn');
+  if (btn) btn.textContent = tr(serState.on ? '断开' : '连接'); // 语言切换后同步动态按钮标签
+  if (!serState.on){
+    live.innerHTML = '<div class="ana-note" style="margin-top:10px">' + tr('未连接。选择接入方式并点「连接」开始每 5 秒顺序轮询全部探头；无硬件时勾选「模拟读数」体验全流程。') + '</div>';
+    drawSerChart();
+    return;
+  }
+  function badge(ok){ return '<span class="badge" style="' + (ok ? 'background:#dcfce7;color:#166534' : 'background:#fef2f2;color:#b91c1c') + '">' + (ok ? tr('正常') : tr('超阈值')) + '</span>'; }
+  var cards = serDevs.map(function(dev, i){
+    var r = null;
+    for (var k = serState.readings.length - 1; k >= 0; k--){ if (serState.readings[k].dev === dev.id){ r = serState.readings[k]; break; } }
+    var type = dev.hid ? 'th' : (dev.type || 'th');
+    var t = r ? r.temp : null, h = r ? r.hum : null, c = r ? r.co2 : null;
+    var ok = type === 'co2' ? (c != null && !isNaN(c) && c <= thresholds.co2High)
+           : type === 'th' ? (t != null && !isNaN(t) && t >= thresholds.tempLow && t <= thresholds.tempHigh && h != null && !isNaN(h) && h >= thresholds.humLow && h <= thresholds.humHigh)
+           : true; // 光照/负压本期无限值判定
+    var big = (t != null && !isNaN(t) ? fmt1(t) + '℃' : '—') + ' <span style="font-size:15px;color:#0284c7">' + (h != null && !isNaN(h) ? h + '%' : (type === 'th' ? '—' : '')) + '</span>';
+    var extra = [];
+    if (c != null && !isNaN(c)) extra.push(c + ' ppm');
+    if (r && r.lux != null && !isNaN(r.lux)) extra.push(r.lux + ' lx');
+    if (r && r.pa != null && !isNaN(r.pa)) extra.push(fmt1(r.pa) + ' Pa');
+    return '<div class="cage-card" style="border-top:3px solid ' + sciPalette[i % sciPalette.length] + '">' +
+      '<div class="cc-row" style="font-size:12px;color:#475569"><b style="color:' + sciPalette[i % sciPalette.length] + '">' + esc(dev.name) + '</b> ' + (dev.hid ? 'USB' : '@ ' + dev.addr) + ' ' + badge(ok) + '</div>' +
+      '<div style="font-size:22px;font-weight:700;color:#1d4ed8;margin:2px 0">' + big + '</div>' +
+      (extra.length ? '<div style="font-size:12.5px;color:#0f172a;margin:2px 0">' + extra.join(' · ') + '</div>' : '') +
+      '<div class="cc-row" style="font-size:11.5px;color:#94a3b8">' + (type === 'co2' ? tr('阈值 ') + 'CO₂ ≤ ' + thresholds.co2High + ' ppm' : tr('阈值 ') + thresholds.tempLow + '–' + thresholds.tempHigh + '℃ / ' + thresholds.humLow + '–' + thresholds.humHigh + '%') +
+      '<br>' + (r ? tr('最近 ') + r.t : tr('正在积累读数…')) + '</div></div>';
+  }).join('');
+  cards += '<div class="cage-card"><div class="cc-row" style="font-size:12px;color:#64748b">' + tr('监测状态') + '</div>' +
+    '<div style="font-size:13px;color:#0f172a;line-height:1.8">' + esc(serCfg.port) + ' · ' + serDevs.length + tr(' 个探头 · 每 5 秒顺序轮询 · 最近 ') + serState.last + '<br>' + tr('已记录 ') + serState.readings.length + tr(' 条读数') +
+    (serState.err ? '<br><span style="color:#b91c1c">' + esc(serState.err) + '</span>' : '') + '</div></div>';
+  var sug = (serState.sugCount >= 2 && serState.sugTexts.length) ? '<div class="ana-note" style="margin-top:10px;background:#fffbeb;border:1px solid #fcd34d;color:#92400e"><b>' + tr('联动建议') + '</b> · ' + tr('仅内联建议，不下发任何控制指令') + '：' + serState.sugTexts.map(function(s){ return esc(s); }).join('；') + '</div>' : '';
+  live.innerHTML = sug + '<div class="cage-grid" style="margin-top:10px">' + cards + '</div>';
+  drawSerChart();
+}
+// v3.1：多探头实时温湿度曲线（左轴温度自适应 + 阈值带，右轴湿度 0–100%，实线温度 / 虚线湿度）
+function drawSerChart(){
+  var cv = $('#ser-chart');
+  if (!cv || !cv.getContext) return;
+  var ctx = cv.getContext('2d');
+  var W = cv.width, H = cv.height;
+  ctx.clearRect(0, 0, W, H);
+  var tail = serState.readings.slice(-144); // 最近 144 条读数 ≈ 12 分钟窗口
+  var n = tail.length;
+  if (!n){
+    ctx.fillStyle = '#94a3b8'; ctx.font = '12px "Segoe UI","Microsoft YaHei",sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText(tr('实时曲线：连接后自动绘制最近 12 分钟各探头温湿度（实线 温度 / 虚线 湿度）'), W / 2, H / 2);
+    return;
+  }
+  var PADL = 44, PADR = 40, PADT = 12, PADB = 22;
+  var PW = W - PADL - PADR, PH = H - PADT - PADB;
+  var tMin = Math.min(thresholds.tempLow, 1e9), tMax = Math.max(thresholds.tempHigh, -1e9);
+  tail.forEach(function(r){ if (r.temp != null){ tMin = Math.min(tMin, r.temp); tMax = Math.max(tMax, r.temp); } });
+  if (tMin === 1e9){ tMin = 20; tMax = 30; }
+  var pad = Math.max(1, (tMax - tMin) * 0.15);
+  tMin = Math.floor(tMin - pad); tMax = Math.ceil(tMax + pad);
+  function xAt(i){ return PADL + (n <= 1 ? PW / 2 : (i / (n - 1)) * PW); }
+  function yT(v){ return PADT + (1 - (v - tMin) / (tMax - tMin)) * PH; }
+  function yH(v){ return PADT + (1 - v / 100) * PH; }
+  ctx.fillStyle = 'rgba(37,99,235,.07)'; // 温度阈值带
+  ctx.fillRect(PADL, yT(thresholds.tempHigh), PW, Math.max(1, yT(thresholds.tempLow) - yT(thresholds.tempHigh)));
+  ctx.strokeStyle = '#e2e8f0'; ctx.fillStyle = '#94a3b8'; ctx.font = '10px "Segoe UI",sans-serif';
+  ctx.textAlign = 'right';
+  for (var g = 0; g <= 4; g++){
+    var tv = tMin + (tMax - tMin) * g / 4, y = yT(tv);
+    ctx.beginPath(); ctx.moveTo(PADL, y); ctx.lineTo(W - PADR, y); ctx.stroke();
+    ctx.fillText(Math.round(tv) + '℃', PADL - 4, y + 3);
+  }
+  ctx.textAlign = 'left';
+  [0, 50, 100].forEach(function(hv){ ctx.fillText(hv + '%', W - PADR + 4, yH(hv) + 3); });
+  serDevs.forEach(function(dev, di){
+    var col = sciPalette[di % sciPalette.length], ptsT = [], ptsH = [];
+    tail.forEach(function(r, i){ // v3.4：CO₂/光照/负压设备无温湿度通道，缺失值不进曲线，避免 NaN 断线
+      if (r.dev !== dev.id) return;
+      if (r.temp != null && !isNaN(r.temp)) ptsT.push([i, r.temp]);
+      if (r.hum != null && !isNaN(r.hum)) ptsH.push([i, r.hum]);
+    });
+    if (!ptsT.length && !ptsH.length) return;
+    ctx.strokeStyle = col; ctx.lineWidth = 1.6; ctx.beginPath(); // 实线：温度（左轴）
+    ptsT.forEach(function(p, k){ k ? ctx.lineTo(xAt(p[0]), yT(p[1])) : ctx.moveTo(xAt(p[0]), yT(p[1])); });
+    ctx.stroke();
+    ctx.globalAlpha = 0.55; ctx.setLineDash([4, 3]); ctx.lineWidth = 1.2; ctx.beginPath(); // 虚线：湿度（右轴）
+    ptsH.forEach(function(p, k){ k ? ctx.lineTo(xAt(p[0]), yH(p[1])) : ctx.moveTo(xAt(p[0]), yH(p[1])); });
+    ctx.stroke();
+    ctx.setLineDash([]); ctx.globalAlpha = 1;
+  });
+  ctx.font = '10.5px "Segoe UI","Microsoft YaHei",sans-serif'; ctx.textAlign = 'left';
+  var lx = PADL;
+  serDevs.forEach(function(dev, di){
+    var t0 = SER_TYPES[dev.type || 'th'] || SER_TYPES.th;
+    var label = (dev.hid || t0.id === 'th') ? dev.name + T(' 实线 温度 · 虚线 湿度', ' solid temp · dashed RH') : dev.name + ' · ' + tr(t0.label) + T('（无温湿度通道）', ' (no temp/RH)');
+    ctx.fillStyle = sciPalette[di % sciPalette.length];
+    ctx.fillRect(lx, H - 10, 10, 3);
+    ctx.fillStyle = '#475569';
+    ctx.fillText(label, lx + 14, H - 6);
+    lx += ctx.measureText(label).width + 26;
+  });
+}
+// ================= v3.1：标准限值模板（WHO / IAEA） =================
+var THR_PRESETS = [
+  {id: 'default', n: '常规饲养（本室默认）', d: '24–28℃ / 65–85%RH', t: {tempLow: 24, tempHigh: 28, humLow: 65, humHigh: 85}},
+  {id: 'who_contact', n: 'WHO 成蚊接触测定', d: '25±2℃ / 80±10%RH', t: {tempLow: 23, tempHigh: 27, humLow: 70, humHigh: 90}},
+  {id: 'who_bottle', n: 'WHO 瓶测定', d: '27±2℃ / 湿度不限', t: {tempLow: 25, tempHigh: 29, humLow: 60, humHigh: 90}},
+  {id: 'iaea_aedes', n: 'IAEA 伊蚊规模化饲养', d: '26±1℃ / 70±5%RH', t: {tempLow: 25, tempHigh: 27, humLow: 65, humHigh: 75}}
+];
+function initThrPreset(){
+  var sel = $('#thr-preset');
+  if (!sel || sel.options.length) return;
+  sel.innerHTML = '<option value="">' + tr('选择标准模板…') + '</option>' + THR_PRESETS.map(function(p){
+    return '<option value="' + p.id + '">' + esc(tr(p.n) + '（' + tr(p.d) + '）') + '</option>';
+  }).join('');
+}
+function applyThrPreset(id){
+  var p = null;
+  THR_PRESETS.forEach(function(x){ if (x.id === id) p = x; });
+  if (!p) return;
+  thresholds.tempLow = p.t.tempLow; thresholds.tempHigh = p.t.tempHigh;
+  thresholds.humLow = p.t.humLow; thresholds.humHigh = p.t.humHigh;
+  $('#th-temp-low').value = p.t.tempLow; $('#th-temp-high').value = p.t.tempHigh;
+  $('#th-hum-low').value = p.t.humLow; $('#th-hum-high').value = p.t.humHigh;
+  toast(tr('已应用标准限值：') + tr(p.n) + tr('（仅影响此后检测）'));
+}
+// ================= v3.1：血饲-产卵日历提醒 =================
+// FAO/IAEA：雌蚊吸血后约 3 天开始产卵（第 3–5 天为高峰）；出现产卵证据（子笼起始不早于预计日）后不再提醒
+function checkOvipReminder(){
+  batches.forEach(function(b){
+    if (b.status !== 'rearing') return;
+    var bf = null;
+    (b.records || []).forEach(function(r){
+      if (r.t === 'feed' && r.type === '血饲'){
+        var k = r.d + ' ' + (r.tm || '');
+        if (!bf || k > bf.k) bf = {k: k, d: r.d};
+      }
+    });
+    if (!bf) return;
+    var exp = new Date(new Date(bf.d).getTime() + 3 * 86400000);
+    var expStr = exp.getFullYear() + '-' + serPad(exp.getMonth() + 1) + '-' + serPad(exp.getDate());
+    if (TODAY < expStr) return;
+    var laid = batches.some(function(c){ return c.parent === b.id && c.start >= expStr; }); // 已收集产卵（子笼）
+    if (laid) return;
+    addAlert('产卵预计', T(b.id + ' 血饲 ' + bf.d + '，预计 ' + expStr + ' 起产卵（血饲后约 3 天）', b.id + ' blood-fed ' + bf.d + '; oviposition expected from ' + expStr + ' (~3 days post-bloodmeal)'), 'info', b.id,
+      T('请准备产卵杯（湿滤纸 / 纱布）；第 3–5 天为产卵高峰，可次日收集卵并新建子笼。', 'Prepare an oviposition cup (moist filter paper / gauze); peak laying is days 3–5 — collect eggs the next morning and start a sub-cage.'));
+  });
+}
+// ================= v3.3：发育预测（积温模型 GDD） =================
+// 参数来源：文献值（内置热常数按品系拉丁名自动匹配）；同品系已结束笼 n≥6 时启用本地校准覆盖
+function fcParams(b){
+  var s = strains[b.strain];
+  var lit = MosqForecast.paramsFor(s && s.latin);
+  if (!lit) return null;
+  var closed = batches.filter(function(x){ return x.strain === b.strain && x.status === 'closed'; });
+  var cal = MosqForecast.calibrateStrain(closed);
+  if (cal.ok) return {T0:cal.T0, K:cal.K, udt:lit.udt, ref:'校准值', note:'本地回归 n=' + cal.n + ' 笼（覆盖文献默认值）', src:'calib'};
+  return {T0:lit.T0, K:lit.K, udt:lit.udt, ref:'文献值', note:lit.note, src:'lit'};
+}
+var FC_STATUS_TXT = {
+  imminent:      ['已累计足额有效积温并进入蛹期，预计随时羽化', 'Full GDD accumulated and pupa reached — emergence expected any day'],
+  normal:        ['积温轨道与实际阶段推进基本一致', 'GDD track broadly matches actual stage progress'],
+  ahead:         ['积温轨道超前于实际阶段推进', 'GDD track runs ahead of actual stage progress'],
+  ahead_severe:  ['积温轨道明显超前于实际阶段推进', 'GDD track runs far ahead of actual stage progress'],
+  behind:        ['积温轨道落后于实际阶段推进', 'GDD track lags behind actual stage progress'],
+  behind_severe: ['积温轨道明显落后于实际阶段推进', 'GDD track lags far behind actual stage progress']
+};
+var FC_STATUS_HINT = {
+  imminent:      ['请提前准备羽化笼、糖水与实验排期。', 'Prepare the emergence cage, sugar water and experiment schedule.'],
+  normal:        ['继续按计划饲养观察。', 'Continue rearing as planned.'],
+  ahead:         ['可能因温度偏高或文献 K 偏小（株间差异）；建议核对环境温度，积累已结束蚊笼后在科研分析中本地校准。', 'Possibly higher temperature or literature K too small (strain variation); verify temperature and calibrate locally in Research once enough cages close.'],
+  ahead_severe:  ['文献 K 可能明显不适用本品系，或温度读数偏高（水温与气温存在偏差）；建议核对温度并优先本地校准。', 'Literature K may not fit this strain, or readings run high (water vs air temperature); verify temperature and calibrate locally first.'],
+  behind:        ['实际发育快于积温预期（文献 K 偏大）或水温低于室温。', 'Actual development faster than the GDD expectation (literature K too large), or water temperature below room temperature.'],
+  behind_severe: ['发育明显慢于温度预期：请检查水温、幼虫密度、饲料与水质。', 'Development clearly slower than temperature suggests: check water temperature, density, diet and water quality.']
+};
+function fcFootnote(p, fc){
+  return T(
+    '预测基于笼环境温度的线性积温模型：GDD = Σ max(0, min(T̄日, 上限) − T₀)，预计羽化日 = 今日 + 剩余积温 ÷ 近 7 个实测日均积温（无实测时按 26℃ 假设）；环境记录缺失日顺延前值，连续缺失超 3 天或无记录按 26℃ 假设计入。参数：' +
+    (p.src === 'calib' ? tr('校准值') + '（' + p.note + '）' : tr('文献值') + '（' + p.ref + '；' + p.note + '）') +
+    '。本预测为相关性参考而非因果结论：未纳入密度、饲料、水质、光照等因子；幼虫实际受水温驱动，与室温存在系统偏差；文献热常数存在株间差异（±20–30%），建议积累已结束蚊笼后在「统计分析 → 科研分析」本地校准。',
+    'Forecast based on a linear degree-day model on cage-environment temperature: GDD = Σ max(0, min(T̄, UDT) − T₀); expected emergence = today + remaining GDD ÷ mean daily GDD of the last 7 measured days (26℃ assumed when unmeasured); missing days carry the previous value forward, gaps over 3 days or without a prior value assume 26℃. Parameters: ' +
+    (p.src === 'calib' ? 'calibrated (' + p.note + ')' : 'literature (' + p.ref + '; ' + p.note + ')') +
+    '. Correlation only, not causal: density, diet, water quality and light are not modelled; larvae are driven by water temperature, which deviates from room temperature; literature constants vary ±20–30% between strains — calibrate locally in Statistics → Research after enough cages close.');
+}
+function renderForecastCard(b){
+  var box = $('#bd-forecast');
+  if (!box) return;
+  if (b.status !== 'rearing'){ box.innerHTML = ''; return; }
+  var p = fcParams(b);
+  var head = '<div class="region" style="margin-top:12px"><div class="region-title">' + tr('发育预测（积温模型 GDD）') + (p ?
+    '<span class="tag" style="background:' + (p.src === 'calib' ? '#ecfdf5;color:#047857' : '#eff6ff;color:#1d4ed8') + '">' + tr(p.ref) + ' · T₀ ' + p.T0 + '℃ / K ' + p.K + ' 日·度</span>' : '') + '</div>';
+  if (!p){
+    box.innerHTML = head + '<div class="empty" style="margin-top:8px">' + T('未识别品系物种拉丁名，无匹配的文献热常数；请补全品系「拉丁名」后重试。', 'Species Latin name not recognized — no matching literature thermal constants; complete the strain Latin name first.') + '</div></div>';
+    return;
+  }
+  var fc = MosqForecast.forecastCage(b, p, TODAY);
+  if (fc.status === 'done'){
+    box.innerHTML = head + '<div style="font-size:12.5px;color:#475569;padding:2px 12px 6px">' + T('本笼已进入成虫期，发育预测完成；成虫期管理请使用饲喂 / 实验处理 / 产卵提醒。', 'This cage has reached the adult stage — forecast complete; use feeding / experiment records and oviposition reminders for adults.') + '</div>' +
+      '<div class="ana-note">' + fcFootnote(p, fc) + '</div></div>';
+    return;
+  }
+  var etaHtml = '—';
+  if (fc.status === 'imminent' || fc.remain <= 0) etaHtml = '<b>' + tr('已达标 · 随时羽化') + '</b>';
+  else if (fc.etaDate) etaHtml = '<b>' + fc.etaDate + '</b>' + T('（约 ' + fc.etaDays + ' 天后）', ' (~' + fc.etaDays + ' d)');
+  var st = FC_STATUS_TXT[fc.status] || FC_STATUS_TXT.normal;
+  var hint = FC_STATUS_HINT[fc.status] || FC_STATUS_HINT.normal;
+  var tagBg = fc.status === 'normal' ? '#f0fdf4;color:#15803d' : (fc.status === 'imminent' ? '#fffbeb;color:#b45309' : (fc.status.indexOf('ahead') === 0 ? '#eff6ff;color:#1d4ed8' : '#fef2f2;color:#b91c1c'));
+  var kpis = '<div class="kpis" style="grid-template-columns:repeat(4,1fr);margin-top:8px">' +
+    '<div class="kpi"><div class="kv">' + etaHtml + '</div><div class="kl">' + tr('预计羽化日') + '</div></div>' +
+    '<div class="kpi"><div class="kv">' + fc.gdd + ' / ' + fc.K + '</div><div class="kl">' + tr('已累计有效积温（日·度）') + '</div></div>' +
+    '<div class="kpi"><div class="kv">' + fc.progress + '%</div><div class="kl">' + tr('积温轨道进度') + '</div></div>' +
+    '<div class="kpi"><div class="kv">' + fc.coverage + '%</div><div class="kl">' + tr('环境记录覆盖') + '</div></div></div>';
+  // 双轨进度条：蓝色 = 积温轨道进度，琥珀刻线 = 实际阶段序进度
+  var gddW = Math.min(100, fc.progress), actW = Math.min(99, Math.max(0, fc.actual));
+  var bar = '<div style="position:relative;height:16px;background:#eef2f6;border-radius:8px;overflow:hidden;margin-top:10px">' +
+    '<div style="position:absolute;left:0;top:0;bottom:0;width:' + gddW + '%;background:#3b82f6"></div>' +
+    '<div style="position:absolute;left:' + actW + '%;top:0;bottom:0;width:3px;background:#f59e0b"></div></div>' +
+    '<div class="legend-row" style="margin-top:6px"><span><span class="lg-dot" style="background:#3b82f6"></span>' + tr('积温轨道进度') + ' ' + fc.progress + '%</span>' +
+    '<span><span class="lg-dot" style="background:#f59e0b"></span>' + tr('实际阶段进度') + ' ' + fc.actual + '%（' + tr(b.stage) + '）</span>' +
+    '<span>' + T('日均积温 ', 'Mean daily GDD ') + fc.rate + ' 日·度' + (fc.rateSrc === 'env' ? T('（实测）', ' (measured)') : T('（26℃ 假设）', ' (26℃ assumed)')) + '</span></div>';
+  var statusLine = '<div style="margin-top:10px;font-size:12.5px"><span class="tag" style="background:' + tagBg + '">' + T(st[0], st[1]) + T('（偏差 ', ' (deviation ') + (fc.dev > 0 ? '+' : '') + fc.dev + T(' 个百分点）', ' pp)') + '</span> ' +
+    '<span style="color:#475569">' + T(hint[0], hint[1]) + '</span></div>';
+  box.innerHTML = head + kpis + bar + statusLine + '<div class="ana-note" style="margin-top:10px">' + fcFootnote(p, fc) + '</div></div>';
+}
+// —— 发育偏差预警（沿用 open + type + batch 去重） ——
+function checkForecastDeviation(){
+  batches.forEach(function(b){
+    if (b.status !== 'rearing') return;
+    var p = fcParams(b); if (!p) return;
+    var fc = MosqForecast.forecastCage(b, p, TODAY);
+    if (fc.status === 'imminent'){
+      addAlert('发育预测', T(b.id + ' 已累计足额有效积温（' + fc.gdd + '/' + fc.K + ' 日·度）并进入蛹期，预计随时羽化', b.id + ' has accumulated the full GDD (' + fc.gdd + '/' + fc.K + ' DD) and reached pupa — emergence imminent'), 'info', b.id,
+        T('请提前准备羽化笼、糖水与实验排期。', 'Prepare the emergence cage, sugar water and experiment schedule.'));
+    } else if (fc.status === 'ahead' || fc.status === 'ahead_severe'){
+      addAlert('发育偏差', T(b.id + ' 积温轨道超前实际阶段推进 ' + fc.dev + ' 个百分点（' + fc.progress + '% vs ' + fc.actual + '%）', b.id + ' GDD track ahead of stage progress by ' + fc.dev + ' pp (' + fc.progress + '% vs ' + fc.actual + '%)'), fc.status === 'ahead_severe' ? 'warn' : 'info', b.id,
+        T('可能因温度偏高或文献 K 偏小（株间差异 ±20–30%）；建议核对环境温度，并在科研分析中本地校准。', 'Possibly higher temperature or literature K too small (±20–30% strain variation); verify temperature and calibrate locally in Research.'));
+    } else if (fc.status === 'behind' || fc.status === 'behind_severe'){
+      addAlert('发育偏差', T(b.id + ' 积温轨道落后实际阶段推进 ' + Math.abs(fc.dev) + ' 个百分点（' + fc.progress + '% vs ' + fc.actual + '%）', b.id + ' GDD track behind stage progress by ' + Math.abs(fc.dev) + ' pp (' + fc.progress + '% vs ' + fc.actual + '%)'), fc.status === 'behind_severe' ? 'warn' : 'info', b.id,
+        T('发育与温度预期不符：请检查水温、幼虫密度、饲料与水质。', 'Development inconsistent with temperature: check water temperature, density, diet and water quality.'));
+    }
+  });
+}
+// —— 科研分析（生存分析页签）：预测参数校准 + 羽化产量区间 ——
+function renderResearchForecast(){
+  var calBox = $('#sci-cal'), yBox = $('#sci-yield');
+  if (!calBox || !yBox) return;
+  var closed = anaClosed();
+  var groups = [];
+  closed.forEach(function(b){
+    var g = null;
+    for (var i = 0; i < groups.length; i++){ if (groups[i].strain === b.strain){ g = groups[i]; break; } }
+    if (!g){ g = {strain:b.strain, cages:[]}; groups.push(g); }
+    g.cages.push(b);
+  });
+  if (!groups.length){
+    calBox.innerHTML = '<div class="region" style="margin-top:12px"><div class="region-title">' + tr('预测参数校准（T₀ / K）') + '</div>' +
+      '<div class="empty" style="margin-top:8px">' + T('暂无已结束蚊笼：结束后此处将基于「发育历期 × 平均温度」回归校准本株发育参数（T₀ / K）。', 'No closed cages yet: once cages close, T₀ / K will be calibrated here by regressing development duration on mean temperature.') + '</div></div>';
+    yBox.innerHTML = '';
+    return;
+  }
+  // ① 参数校准（1/D × T̄ 线性回归，n≥6 启用并覆盖文献默认值）
+  var rows = '';
+  groups.forEach(function(g){
+    var cal = MosqForecast.calibrateStrain(g.cages);
+    var lit = MosqForecast.paramsFor(strains[g.strain] && strains[g.strain].latin);
+    var src, t0, k;
+    if (cal.ok){ src = tr('校准值') + T('（本地回归 n=' + cal.n + '）', ' (local regression, n=' + cal.n + ')'); t0 = cal.T0; k = cal.K; }
+    else if (lit){ src = tr('文献值') + T('（有效样本 ' + cal.n + '/6，未启用校准）', ' (valid samples ' + cal.n + '/6 — calibration not enabled)'); t0 = lit.T0; k = lit.K; }
+    else { src = tr('无匹配物种参数'); t0 = '—'; k = '—'; }
+    rows += '<tr><td>' + tr(strains[g.strain].name) + '</td><td>' + cal.n + '</td><td>' + t0 + '</td><td>' + k + '</td><td>' + src + '</td></tr>';
+  });
+  var sampleNotes = groups.map(function(g){
+    var cal = MosqForecast.calibrateStrain(g.cages);
+    if (!cal.samples.length) return '';
+    return tr(strains[g.strain].name) + T('：', ': ') + cal.samples.map(function(s){ return s.id + ' ' + s.T + '℃ / ' + s.D + T(' 天', ' d'); }).join(' · ');
+  }).filter(Boolean).join('<br>');
+  calBox.innerHTML = '<div class="region" style="margin-top:12px"><div class="region-title">' + tr('预测参数校准（T₀ / K）') + '</div>' +
+    '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>' + tr('品系') + '</th><th>' + tr('有效样本') + '</th><th>T₀（℃）</th><th>' + tr('K（日·度）') + '</th><th>' + tr('参数来源') + '</th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
+    (sampleNotes ? '<div style="font-size:11.5px;color:#64748b;margin-top:6px">' + sampleNotes + '</div>' : '') +
+    '<div class="ana-note">' + tr('校准方法：对同品系已结束且记录至成虫期的蚊笼做 1/D = (T̄ − T₀)/K 线性回归（最小二乘），T̄ 取蚊笼平均温度或环境记录均值；有效样本 ≥6 笼才启用校准并覆盖文献默认值，否则沿用文献值。结果受样本量与温度记录质量限制，随数据积累自动更新。') + '</div></div>';
+  // ② 羽化产量区间（历史分布外推 · 非因果预测；n≥10 才显示）
+  var yRows = '';
+  groups.forEach(function(g){
+    var y = MosqForecast.yieldByStrain(g.cages);
+    var name = tr(strains[g.strain].name);
+    if (y.ok){
+      var est = batches.filter(function(x){ return x.strain === g.strain && x.status === 'rearing'; }).map(function(x){
+        return x.id + '（' + x.eggs + T(' 粒卵', ' eggs') + '）→ ' + Math.round(x.eggs * y.p10 / 100) + '–' + Math.round(x.eggs * y.p50 / 100) + '–' + Math.round(x.eggs * y.p90 / 100) + T(' 只', ' adults');
+      }).join('；') || '—';
+      yRows += '<tr><td>' + name + '</td><td>' + y.n + '</td><td class="surv">' + y.p10 + '%</td><td class="surv">' + y.p50 + '%</td><td class="surv">' + y.p90 + '%</td><td>' + est + '</td></tr>';
+    } else {
+      yRows += '<tr><td>' + name + '</td><td>' + y.n + '</td><td colspan="4" style="color:#64748b">' + T('样本不足（' + y.n + '/10 批次），暂不显示区间；继续积累已结束蚊笼后自动启用。', 'Insufficient samples (' + y.n + '/10 closed cages) — interval hidden; it appears automatically after more cages close.') + '</td></tr>';
+    }
+  });
+  yBox.innerHTML = '<div class="region" style="margin-top:12px"><div class="region-title">' + tr('羽化产量区间（历史分布外推）') + '</div>' +
+    '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>' + tr('品系') + '</th><th>' + tr('已结束笼数') + '</th><th>P10</th><th>P50</th><th>P90</th><th>' + tr('在养笼预估区间（羽化成虫）') + '</th></tr></thead><tbody>' + yRows + '</tbody></table></div>' +
+    '<div class="ana-note">' + tr('区间为同品系已结束蚊笼累积存活率（终末成虫 / 起始卵）的 P10/P50/P90 分位 × 在养笼起始卵量的历史分布外推，属于相关性参考而非因果预测；实际产量受密度、饲料、水质与操作等因子影响。样本 <10 批次不显示（沿用统计分析「样本不足不呈现」原则）。') + '</div></div>';
+}
+// ================= v3.4：Brière 发育速率拟合（科研区展示） =================
+// 样本复用 MosqForecast.calibrateStrain 的 {id,T,D,r}；拟合由 algo/briere.v0.1.js 完成，样本不足诚实拒绝
+function linR2Of(samples){
+  var n = samples.length, sx = 0, sy = 0, sxx = 0, syy = 0, sxy = 0;
+  samples.forEach(function(s){ sx += s.T; sy += s.r; sxx += s.T * s.T; syy += s.r * s.r; sxy += s.T * s.r; });
+  var vx = sxx - sx * sx / n, vy = syy - sy * sy / n, cov = sxy - sx * sy / n;
+  if (!(vx > 0) || !(vy > 0)) return null;
+  return Math.round(cov * cov / (vx * vy) * 10000) / 10000;
+}
+function renderBriere(){
+  var box = $('#sci-briere');
+  if (!box) return;
+  var closed = anaClosed();
+  var groups = [];
+  closed.forEach(function(b){
+    var g = null;
+    for (var i = 0; i < groups.length; i++){ if (groups[i].strain === b.strain){ g = groups[i]; break; } }
+    if (!g){ g = {strain: b.strain, cages: []}; groups.push(g); }
+    g.cages.push(b);
+  });
+  if (!groups.length){
+    box.innerHTML = '<div class="region" style="margin-top:12px"><div class="region-title">' + tr('Brière 发育速率拟合（科研）') + '</div>' +
+      '<div class="empty" style="margin-top:8px">' + T('暂无已结束蚊笼：结束后此处将基于「发育历期 × 平均温度」拟合 Brière 非线性发育速率曲线。', 'No closed cages yet: once cages close, a Brière nonlinear development-rate curve will be fitted here from "duration × mean temperature".') + '</div></div>';
+    return;
+  }
+  var rows = '', curves = [];
+  groups.forEach(function(g){
+    var name = tr(strains[g.strain].name);
+    var cal = MosqForecast.calibrateStrain(g.cages);
+    var fit = MosqBriere.fit(cal.samples);
+    if (!fit.ok){
+      rows += '<tr><td>' + name + '</td><td>' + fit.n + '</td><td>' + fit.span + '</td><td colspan="5" style="color:#64748b">' +
+        T('样本不足，暂不拟合（需 ≥' + fit.needN + ' 个有效样本且温度跨度 ≥' + fit.needSpan + '℃；当前 ' + fit.n + ' 个 / ' + fit.span + '℃）', 'Insufficient samples — fitting withheld (needs ≥' + fit.needN + ' valid samples and ≥' + fit.needSpan + '℃ span; current ' + fit.n + ' / ' + fit.span + '℃)') + '</td></tr>';
+      return;
+    }
+    var lr2 = linR2Of(cal.samples);
+    rows += '<tr><td>' + name + '</td><td>' + fit.n + '</td><td>' + fit.span + '</td><td>' + fit.c + '</td><td>' + fit.T0 + '</td><td>' + fit.TL + '</td><td class="surv">' + fit.r2 + (fit.weak ? ' ⚠' : '') + '</td><td>' + (lr2 == null ? '—' : lr2) + '</td></tr>';
+    curves.push({name: name, fit: fit});
+  });
+  box.innerHTML = '<div class="region" style="margin-top:12px"><div class="region-title">' + tr('Brière 发育速率拟合（科研）') + '</div>' +
+    '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>' + tr('品系') + '</th><th>' + tr('有效样本') + '</th><th>' + tr('温度跨度（℃）') + '</th><th>c</th><th>T₀（℃）</th><th>T_L（℃）</th><th>r²</th><th>' + tr('线性回归 r²（对比）') + '</th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
+    (curves.length ? '<canvas id="briere-chart" width="680" height="250" style="width:100%;max-width:680px;margin-top:10px"></canvas>' : '') +
+    '<div class="ana-note">' + tr('拟合 Brière 模型 r(T) = c·T·(T−T₀)·(T_L−T)^0.5：对 (T₀, T_L) 以 0.5℃ 网格搜索取 r² 最大组合，c 为过原点最小二乘解析解；样本 <4 个或温度跨度 <5℃ 时诚实拒绝拟合，r²<0.5 以 ⚠ 标记提示拟合较弱。该模型为经验描述（相关性参考而非因果预测），仅在样本温度区间 [T₀, T_L] 内有效，外插不可靠；末列为同样本线性积温回归（1/D × T̄）的 r²，供模型选择参考。') + '</div></div>';
+  drawBriereChart(curves);
+}
+function drawBriereChart(curves){
+  var cv = $('#briere-chart');
+  if (!cv || !cv.getContext || !curves.length) return;
+  var ctx = cv.getContext('2d');
+  var W = cv.width, H = cv.height;
+  ctx.clearRect(0, 0, W, H);
+  var PAL = ['#2563eb', '#0ea5e9', '#7c3aed', '#059669', '#d97706'];
+  var PADL = 52, PADR = 16, PADT = 24, PADB = 26;
+  var PW = W - PADL - PADR, PH = H - PADT - PADB;
+  var rMax = 0, tMin = 1e9, tMax = -1e9;
+  curves.forEach(function(c){
+    var f = c.fit;
+    for (var T = f.T0; T <= f.TL + 1e-9; T += 0.5){ // 模型峰值可能高于样本点，一并纳入量程
+      var rr = f.c * T * (T - f.T0) * Math.sqrt(Math.max(0, f.TL - T));
+      if (isFinite(rr)) rMax = Math.max(rMax, rr);
+    }
+    f.curve.forEach(function(p){ rMax = Math.max(rMax, p.r, p.rhat); tMin = Math.min(tMin, p.T); tMax = Math.max(tMax, p.T); });
+    tMin = Math.min(tMin, f.T0); tMax = Math.max(tMax, f.TL);
+  });
+  if (!(rMax > 0)) return;
+  tMin = Math.floor(tMin - 2); tMax = Math.ceil(tMax + 2);
+  rMax = rMax * 1.15;
+  function xAt(t){ return PADL + (t - tMin) / (tMax - tMin) * PW; }
+  function yAt(r){ return PADT + (1 - r / rMax) * PH; }
+  ctx.strokeStyle = '#e2e8f0'; ctx.fillStyle = '#94a3b8'; ctx.font = '10px "Segoe UI",sans-serif'; ctx.textAlign = 'right';
+  for (var g = 0; g <= 4; g++){
+    var rv = rMax * g / 4, y = yAt(rv);
+    ctx.beginPath(); ctx.moveTo(PADL, y); ctx.lineTo(W - PADR, y); ctx.stroke();
+    ctx.fillText(rv.toFixed(3), PADL - 4, y + 3);
+  }
+  ctx.textAlign = 'center';
+  for (var gt = 0; gt <= 4; gt++){
+    var tv = tMin + (tMax - tMin) * gt / 4;
+    ctx.fillText(Math.round(tv) + '℃', xAt(tv), H - 8);
+  }
+  curves.forEach(function(c, ci){
+    var col = PAL[ci % PAL.length], f = c.fit;
+    var n = f.curve.length, sx = 0, sy = 0, sxx = 0, sxy = 0; // 同样本线性回归（灰虚线对比）
+    f.curve.forEach(function(p){ sx += p.T; sy += p.r; sxx += p.T * p.T; sxy += p.T * p.r; });
+    var den = n * sxx - sx * sx;
+    if (den > 0){
+      var b1 = (n * sxy - sx * sy) / den, b0 = (sy - b1 * sx) / n;
+      ctx.strokeStyle = '#cbd5e1'; ctx.setLineDash([5, 4]); ctx.lineWidth = 1.3; ctx.beginPath();
+      ctx.moveTo(xAt(tMin), yAt(Math.max(0, b1 * tMin + b0)));
+      ctx.lineTo(xAt(tMax), yAt(Math.max(0, b1 * tMax + b0)));
+      ctx.stroke(); ctx.setLineDash([]);
+    }
+    ctx.strokeStyle = col; ctx.lineWidth = 2; ctx.beginPath(); // Brière 实线（[T₀, T_L] 内连续取值）
+    var started = false;
+    for (var T = f.T0; T <= f.TL + 1e-9; T += 0.2){
+      var rhat = f.c * T * (T - f.T0) * Math.sqrt(Math.max(0, f.TL - T));
+      if (!started){ ctx.moveTo(xAt(T), yAt(rhat)); started = true; } else ctx.lineTo(xAt(T), yAt(rhat));
+    }
+    ctx.stroke();
+    ctx.fillStyle = col; // 样本散点
+    f.curve.forEach(function(p){ ctx.beginPath(); ctx.arc(xAt(p.T), yAt(p.r), 3, 0, Math.PI * 2); ctx.fill(); });
+  });
+  ctx.font = '10.5px "Segoe UI","Microsoft YaHei",sans-serif'; ctx.textAlign = 'left';
+  var lx = PADL;
+  curves.forEach(function(c, ci){
+    var label = c.name + T(' Brière 拟合', ' Brière fit');
+    ctx.fillStyle = PAL[ci % PAL.length];
+    ctx.fillRect(lx, 6, 12, 3);
+    ctx.fillStyle = '#475569';
+    ctx.fillText(label, lx + 16, 10);
+    lx += ctx.measureText(label).width + 30;
+  });
+  ctx.fillStyle = '#cbd5e1'; ctx.fillRect(lx, 6, 12, 3);
+  ctx.fillStyle = '#64748b';
+  ctx.fillText(tr('线性回归（对比）'), lx + 16, 10);
+}
 var IOT_HELP = {
   sensor: {t:'温湿度传感器 · 接入指南', steps: [
     '<b>1. 登录米家账号：</b>在上方「米家账号」处输入手机号 / 邮箱，短信验证码登录。只需登录一次，此后自动保持连接。',
@@ -684,6 +1399,13 @@ var IOT_HELP = {
     '<b>3. 远程控制：</b>在卡片上直接开关；操作与状态变化实时同步。',
     '<b>4. 预警联动（可选）：</b>温度持续低于下限自动开启加热垫、湿度超上限自动开启风扇等规则，可在卡片「预警联动」中开启（建议开启前人工复核）。',
     '<b>提示：</b>涉及加热类设备务必保留硬件温控保护，软件联动仅作辅助，不要作为唯一保护手段。'
+  ]},
+  serial: {t:'USB 串口 · 接入指南', foot:'桌面版通过自研串口命令直接访问硬件（无需浏览器权限）；浏览器预览模式请勾选「模拟读数」体验全流程。', steps: [
+    '<b>1. 硬件准备：</b>USB 转 RS485 适配器一只（CH340 / FT232 等芯片，免驱即可），Modbus RTU 温湿度变送器若干（SHT 系列等，8-N-1，出厂从站地址一般为 1）。',
+    '<b>2. 接线：</b>变送器 485A / 485B 对应接入适配器 A / B；多台变送器在总线上手拉手并联，各自需设置不同的从站地址（1–247）。',
+    '<b>3. 连接：</b>插入适配器，点「刷新端口」选择出现的 COM 口与波特率（与变送器一致，常见 9600），在「探头列表」逐一登记各探头名称与从站地址后点「连接」。',
+    '<b>4. 监测：</b>连接后每 5 秒按从站地址顺序轮询全部探头（功能码 03，从 0x0000 读 2 个：湿度、温度，0.1 倍率；RS485 半双工不可并发）；实时曲线展示最近 12 分钟各探头读数，超出阈值自动生成预警，监测读数留存 result/env_*.json（桌面版）。',
+    '<b>提示：</b>不同厂家的寄存器映射可能不同（部分型号温度在前），若温湿度显示对调请查阅所用变送器说明书；「标准限值模板」可一键套用 WHO 接触测定 / WHO 瓶测定 / IAEA 伊蚊饲养温湿度限值，套用后仍可在「预警阈值」中微调。'
   ]}
 };
 function iotHelp(kind){
@@ -691,7 +1413,7 @@ function iotHelp(kind){
   if (!h) return;
   $('#ih-title').textContent = tr(h.t);
   $('#ih-body').innerHTML = h.steps.map(function(s){ return '<div style="font-size:12.5px;color:#334155;line-height:1.7;padding:6px 0;border-bottom:1px dashed #e2e8f0">' + tr(s) + '</div>'; }).join('') +
-    '<div style="font-size:11.5px;color:#94a3b8;margin-top:8px">' + tr('登录与同步均在本软件内完成，无需自建 Home Assistant；技术细节详见《调研-米家设备接入可行性》（当前版本为示例界面）。') + '</div>';
+    '<div style="font-size:11.5px;color:#94a3b8;margin-top:8px">' + tr(h.foot || '登录与同步均在本软件内完成，无需自建 Home Assistant；技术细节详见《调研-米家设备接入可行性》（当前版本为示例界面）。') + '</div>';
   showModal('modal-iot-help');
 }
 var delArmed = false, delTimer = null;
@@ -1116,6 +1838,8 @@ function switchIotTab(name){
   document.querySelectorAll('#iot-ptabs button').forEach(function(b){ b.classList.toggle('active', b.dataset.ptab === name); });
   document.getElementById('iotp-local').classList.toggle('active', name === 'local');
   document.getElementById('iotp-mijia').classList.toggle('active', name === 'mijia');
+  document.getElementById('iotp-serial').classList.toggle('active', name === 'serial');
+  if (name === 'serial'){ refreshSerialPorts(); renderSerial(); }
 }
 function switchAnaTab(name){
   document.querySelectorAll('#ana-ptabs button').forEach(function(b){ b.classList.toggle('active', b.dataset.ptab === name); });
@@ -1191,6 +1915,7 @@ function renderActAnalysis(){ MCStore.save();
   if (actSessions.some(function(s){ return s.id === cur; })) sel.value = cur;
   $('#act-table').innerHTML = n ? actTableHtml() : ACT_EMPTY();
   renderActChart();
+  drawCircadian();
 }
 function renderActChart(){
   var id = $('#act-sel').value;
@@ -1210,6 +1935,144 @@ function renderActChart(){
     (s.note ? ' · ' + tr('备注') + '：' + esc(s.note) : '') + '<br>' +
     tr('时长') + ' ' + locFmtDur(s.dur) + ' · ' + tr('平均AI') + ' ' + fmt1(s.meanAI) + ' · ' + tr('峰值AI') + ' ' + fmt1(s.peakAI) + ' · ' + tr('平均虫数') + ' ' + fmt1(s.meanCnt) +
     '<div style="margin-top:6px"><button class="mini-btn ghost" onclick="exportActSession(\'' + s.id + '\')">' + tr('导出') + ' CSV</button></div></div>';
+}
+
+/* ---------- 统计分析 · 科研分析套件（v3.2 · MosqResearch） ---------- */
+var sciPalette = ['#2563eb', '#0ea5e9', '#16a34a', '#d97706', '#7c3aed', '#dc2626'];
+function drawCircadian(){
+  var cv = document.getElementById('act-circadian');
+  if (!cv) return;
+  var ctx = cv.getContext('2d');
+  var W = cv.width, H = cv.height;
+  ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, W, H);
+  var note = $('#act-cir-note');
+  if (!actSessions.length){
+    ctx.fillStyle = '#94a3b8'; ctx.font = '12px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText(tr('暂无监测会话：在「硬件接入 → 本地接入」记录监测会话后，此处将自动生成昼夜节律图。'), W / 2, H / 2);
+    if (note) note.textContent = '';
+    return;
+  }
+  var prof = MosqResearch.circadian(actSessions);
+  var padL = 46, padR = 14, padT = 14, padB = 24;
+  var iw = W - padL - padR, ih = H - padT - padB;
+  var yMax = Math.max.apply(null, prof.hourMean.map(function(v){ return v === null ? 0 : v; }));
+  if (yMax <= 0) yMax = 1; else yMax *= 1.15;
+  var bw = iw / 24;
+  ctx.fillStyle = '#94a3b8'; ctx.font = '10px sans-serif'; ctx.textAlign = 'right';
+  for (var g = 0; g <= 4; g++){
+    var v = yMax * g / 4;
+    var y = padT + ih - v / yMax * ih;
+    ctx.strokeStyle = '#eef2f6'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(W - padR, y); ctx.stroke();
+    ctx.fillText((Math.round(v * 10) / 10).toFixed(1), padL - 6, y + 3);
+  }
+  for (var h = 0; h < 24; h++){
+    if (prof.hourMean[h] === null) continue;
+    var light = h >= 6 && h < 20;
+    var bh = Math.max(prof.hourMean[h] / yMax * ih, 2);
+    ctx.fillStyle = light ? '#f59e0b' : '#475569';
+    ctx.globalAlpha = light ? 0.9 : 0.85;
+    ctx.fillRect(padL + h * bw + 1.5, padT + ih - bh, bw - 3, bh);
+    ctx.globalAlpha = 1;
+    if (h === prof.peakHour){
+      ctx.fillStyle = '#dc2626';
+      ctx.fillRect(padL + h * bw + bw / 2 - 1, padT + ih - bh - 8, 2, 8);
+    }
+  }
+  ctx.fillStyle = '#94a3b8'; ctx.textAlign = 'center';
+  for (var x = 0; x < 24; x += 2){ ctx.fillText(String(x), padL + x * bw + bw / 2, H - 8); }
+  if (note){
+    var ph = prof.peakHour >= 0 ? prof.peakHour + ':00–' + ((prof.peakHour + 1) % 24) + ':00' : '—';
+    note.innerHTML = T(
+      '峰值时段 <b>' + ph + '</b> · 总体活跃度指数均值 ' + fmt1(prof.overall) +
+      (prof.lightMean !== null && prof.darkMean !== null ? ' · 光相均值（06–20）' + fmt1(prof.lightMean) + ' / 暗相均值（20–06）' + fmt1(prof.darkMean) : '') +
+      ' · 基于 ' + prof.nSessions + ' 个会话、' + prof.nSamples + ' 秒采样；橙色为光相、深灰为暗相（按默认光周期 14L:10D、06:00 起光相假设划分）。',
+      'Peak hour <b>' + ph + '</b> · overall mean AI ' + fmt1(prof.overall) +
+      (prof.lightMean !== null && prof.darkMean !== null ? ' · light-phase mean (06–20) ' + fmt1(prof.lightMean) + ' / dark-phase mean (20–06) ' + fmt1(prof.darkMean) : '') +
+      ' · based on ' + prof.nSessions + ' sessions, ' + prof.nSamples + ' s of samples; amber = light phase, grey = dark phase (assumed 14L:10D starting 06:00).');
+  }
+}
+function renderResearch(){ MCStore.save();
+  renderResearchForecast();
+  renderBriere();
+  var kmBox = $('#sci-km'), lifeBox = $('#sci-life');
+  if (!kmBox) return;
+  var closed = anaClosed();
+  if (!closed.length){
+    kmBox.innerHTML = '<div class="empty">' + tr('暂无已结束蚊笼：蚊笼结束归档后，此处将自动生成 KM 生存曲线与生命表。') + '</div>';
+    lifeBox.innerHTML = ''; return;
+  }
+  // 按品系池化 KM 生存曲线（生命表法，结笼按删失处理）
+  var groups = [];
+  closed.forEach(function(b){
+    var g = null;
+    for (var i = 0; i < groups.length; i++){ if (groups[i].strain === b.strain){ g = groups[i]; break; } }
+    if (!g){ g = {strain: b.strain, cages: []}; groups.push(g); }
+    g.cages.push(b);
+  });
+  groups.forEach(function(g){ g.km = MosqResearch.pooledKM(g.cages); });
+  groups.sort(function(a, b){ return a.strain < b.strain ? -1 : 1; });
+  var maxDay = 1;
+  groups.forEach(function(g){
+    g.km.steps.forEach(function(s){ if (s.day > maxDay) maxDay = s.day; });
+    g.km.series.forEach(function(sr){ if (sr.censorDay !== null && sr.censorDay > maxDay) maxDay = sr.censorDay; });
+  });
+  maxDay += 1;
+  var W = 760, H = 300, x0 = 52, y0 = H - 44, x1 = W - 20, y1 = 22;
+  function px(d){ return x0 + Math.min(1, d / maxDay) * (x1 - x0); }
+  function py(v){ return y0 - v / 100 * (y0 - y1); }
+  var svg = '<svg width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="KM 生存曲线" style="max-width:100%">';
+  svg += '<line x1="' + x0 + '" y1="' + y0 + '" x2="' + x1 + '" y2="' + y0 + '" stroke="#cbd5e1"/><line x1="' + x0 + '" y1="' + y0 + '" x2="' + x0 + '" y2="' + y1 + '" stroke="#cbd5e1"/>';
+  for (var gy = 0; gy <= 100; gy += 25){
+    svg += '<line x1="' + x0 + '" y1="' + py(gy) + '" x2="' + x1 + '" y2="' + py(gy) + '" stroke="#eef2f6"/>' +
+      '<text x="' + (x0 - 8) + '" y="' + (py(gy) + 3) + '" font-size="10" fill="#94a3b8" text-anchor="end">' + gy + '%</text>';
+  }
+  var tickStep = Math.max(1, Math.ceil(maxDay / 30));
+  for (var gd = 0; gd <= maxDay; gd += tickStep){
+    svg += '<text x="' + px(gd) + '" y="' + (y0 + 16) + '" font-size="10" fill="#94a3b8" text-anchor="middle">' + gd + '</text>';
+  }
+  svg += '<text x="' + ((x0 + x1) / 2) + '" y="' + (H - 6) + '" font-size="11" fill="#64748b" text-anchor="middle">' + tr('入笼后天数') + '</text>';
+  svg += '<text x="14" y="' + ((y0 + y1) / 2) + '" font-size="11" fill="#64748b" text-anchor="middle" transform="rotate(-90 14 ' + ((y0 + y1) / 2) + ')">' + tr('存活比例（%）') + '</text>';
+  groups.forEach(function(g, gi){
+    var c = sciPalette[gi % sciPalette.length];
+    var path = 'M ' + px(0) + ' ' + py(100);
+    g.km.steps.forEach(function(s){ path += ' H ' + px(s.day).toFixed(1) + ' V ' + py(s.surv * 100).toFixed(1); });
+    svg += '<path d="' + path + '" fill="none" stroke="' + c + '" stroke-width="2" stroke-linejoin="round"/>' +
+      '<circle cx="' + px(g.km.steps.length ? g.km.steps[g.km.steps.length - 1].day : 0).toFixed(1) + '" cy="' + py(g.km.steps.length ? g.km.steps[g.km.steps.length - 1].surv * 100 : 100).toFixed(1) + '" r="4" fill="' + c + '"/>';
+  });
+  svg += '</svg>';
+  var legend = '<div class="legend-row">' + groups.map(function(g, gi){
+    return '<span><span class="lg-dot" style="background:' + sciPalette[gi % sciPalette.length] + '"></span>' + tr(strains[g.strain].name) + '（' + g.km.n + ' 笼）</span>';
+  }).join('') + '</div>';
+  var lr = '';
+  if (groups.length >= 2){
+    var res = MosqResearch.logRank(groups[0].km, groups[1].km);
+    if (isFinite(res.chi2)){
+      lr = '<div class="ana-note" style="margin-top:8px"><b>' + tr('log-rank 检验') + '（' + tr(strains[groups[0].strain].name) + ' vs ' + tr(strains[groups[1].strain].name) + '）：</b>' +
+        'χ² = ' + (Math.round(res.chi2 * 100) / 100) + '，p ' + MosqResearch.fmtP(res.p) +
+        T('（df = 1）→ ' + (res.p < 0.05 ? '两组生存曲线差异显著（α = 0.05）' : '两组生存曲线差异不显著（α = 0.05）'),
+          '(df = 1) → ' + (res.p < 0.05 ? 'survival curves differ significantly (α = 0.05)' : 'no significant difference between survival curves (α = 0.05)')) + '</div>';
+    }
+  }
+  kmBox.innerHTML =
+    '<div class="chart-block"><div class="chart-title">' + tr('KM 生存曲线（按品系池化 · 已结束蚊笼）') + '</div>' + legend + svg +
+    '<div class="ana-note">' + tr('生命表法（离散 Kaplan–Meier）：以阶段计数记录中的死亡数为事件、结笼日剩余个体按删失处理；曲线从入笼日 100% 起。样本量少时请谨慎解读。') + '</div>' + lr + '</div>';
+  // 阶段生命表 + 表观净繁殖率 / 内禀增长率近似
+  var LT = MosqResearch.stageLifeTable(closed);
+  var tbl = '<div class="region"><div class="region-title">' + tr('阶段生命表（l_x / d_x / 100q_x · 池化）') + '</div>' +
+    '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>' + tr('阶段 x') + '</th><th>' + tr('l_x（进入数）') + '</th><th>' + tr('d_x（死亡数）') + '</th><th>' + tr('100q_x（阶段死亡率 %）') + '</th></tr></thead><tbody>';
+  LT.rows.forEach(function(r){
+    tbl += '<tr><td>' + tr(r.stage) + '</td><td>' + r.lx + '</td><td>' + r.dx + '</td><td class="surv">' + (isFinite(r.qx) ? fmt1(r.qx) + '%' : '—') + '</td></tr>';
+  });
+  tbl += '</tbody></table></div>' +
+    '<div class="kpis" style="grid-template-columns:repeat(5,1fr);margin-top:12px">' +
+    '<div class="kpi"><div class="kv">' + (isFinite(LT.R0) ? fmt1(LT.R0) : '—') + '</div><div class="kl">' + tr('表观净繁殖率 R₀') + '</div></div>' +
+    '<div class="kpi"><div class="kv">' + (isFinite(LT.T) ? fmt1(LT.T) : '—') + '</div><div class="kl">' + tr('世代均时 T（天）') + '</div></div>' +
+    '<div class="kpi"><div class="kv">' + (isFinite(LT.rm) ? fmt1(LT.rm) : '—') + '</div><div class="kl">' + tr('内禀增长率 rₘ（近似）') + '</div></div>' +
+    '<div class="kpi"><div class="kv">' + (isFinite(LT.lam) ? fmt1(LT.lam) : '—') + '</div><div class="kl">' + tr('周限增长率 λ') + '</div></div>' +
+    '<div class="kpi"><div class="kv">' + (isFinite(LT.dt) ? fmt1(LT.dt) : '—') + '</div><div class="kl">' + tr('倍增时间 DT（天）') + '</div></div></div>' +
+    '<div class="ana-note">' + tr('l_x 为各阶段转入合计（自阶段计数记录汇总，「记录从略」的中间阶段不参与计算）；d_x 与 100q_x 由相邻阶段推算。R₀ = 终末成虫合计 ÷ 起始卵合计（表观净繁殖率，未计子代增殖）；T = 卵至成虫期转入的平均天数（n 个到达成虫期的蚊笼）；rₘ ≈ ln R₀ / T 为近似估算，精确计算需每雌逐日产卵量（lₓmₓ）数据；λ = e^rₘ；DT = ln2 / rₘ（仅 rₘ > 0 时有意义）。结果供品系间相对比较。') + '</div></div>';
+  lifeBox.innerHTML = tbl;
 }
 
 /* ---------- 统计分析 · 环境分析页签 ---------- */
@@ -1371,14 +2234,82 @@ function exportCsv(k){
     toast(T('已导出蚊笼管理记录 CSV（' + (rows.length - 1) + ' 条，全部蚊笼的阶段转换/饲喂/环境/处置/结笼记录）', 'Cage records CSV exported (' + (rows.length - 1) + ' rows: stage/feed/env/treat/close across all cages)'));
     return;
   }
-  if (k === 'analytics'){
-    var rows = [['蚊笼','蚊株','世代','起始卵量','终末数量','存活率%','平均温度','结束日期','结笼原因']];
+  if (k === 'research-surv'){
+    // v3.2：生存分析长表（R survival / Python lifelines 即用的离散生存数据）
+    var rows = [['笼号','蚊株','世代','天数','事件前存活','死亡数','事件后存活','删失']];
+    var cnt = 0;
     batches.filter(function(b){ return b.result; }).forEach(function(b){
-      rows.push([b.id, strains[b.strain] ? strains[b.strain].name : b.strain, b.gen, b.eggs, b.result.finalCount, fmt1(survPct(b)),
-        typeof b.avgT === 'number' ? b.avgT + '℃' : '', b.result.closeDate, b.result.reason]);
+      var s = MosqResearch.survSeries(b);
+      var alive = s.eggs;
+      s.events.forEach(function(e){
+        alive -= e.dead;
+        rows.push([b.id, strains[b.strain] ? strains[b.strain].name : b.strain, b.gen, e.day, alive + e.dead, e.dead, alive, '否']);
+        cnt++;
+      });
+      if (s.censorDay !== null){
+        rows.push([b.id, strains[b.strain] ? strains[b.strain].name : b.strain, b.gen, s.censorDay, alive, 0, alive, '是']);
+        cnt++;
+      }
     });
-    downloadCsv('MosqCare_统计分析.csv', rows);
-    toast(T('已导出统计分析 CSV（' + (rows.length - 1) + ' 条已结笼存活记录）', 'Analytics CSV exported (' + (rows.length - 1) + ' closed-cage survival rows)'));
+    downloadCsv('MosqCare_生存分析长表.csv', rows);
+    toast(T('已导出生存分析长表 CSV（' + cnt + ' 行事件/删失记录，可直接供 R survival / Python lifelines 使用）', 'Survival long-format CSV exported (' + cnt + ' event/censor rows, ready for R survival / Python lifelines)'));
+    return;
+  }
+  if (k === 'research-life'){
+    var LT = MosqResearch.stageLifeTable(batches.filter(function(b){ return b.result; }));
+    var rows = [['阶段 x','l_x（进入数）','d_x（死亡数）','100q_x（阶段死亡率%）']];
+    LT.rows.forEach(function(r){
+      rows.push([r.stage, r.lx, r.dx, isFinite(r.qx) ? fmt1(r.qx) : '']);
+    });
+    rows.push([]);
+    rows.push(['表观净繁殖率 R₀（终末成虫合计/起始卵合计）', isFinite(LT.R0) ? fmt1(LT.R0) : '']);
+    rows.push(['世代均时 T（天，卵至成虫期转入平均）', isFinite(LT.T) ? fmt1(LT.T) : '']);
+    rows.push(['内禀增长率 rₘ（近似，ln R₀ / T）', isFinite(LT.rm) ? fmt1(LT.rm) : '']);
+    rows.push(['周限增长率 λ（e^rₘ）', isFinite(LT.lam) ? fmt1(LT.lam) : '']);
+    rows.push(['倍增时间 DT（天，ln2 / rₘ）', isFinite(LT.dt) ? fmt1(LT.dt) : '']);
+    rows.push(['说明', 'rₘ 为近似估算，精确计算需每雌逐日产卵量（lₓmₓ）数据；结果供品系间相对比较']);
+    downloadCsv('MosqCare_生命表.csv', rows);
+    toast(T('已导出生命表 CSV（含 R₀ / T / rₘ / λ / DT 参数行）', 'Life-table CSV exported (with R0 / T / rm / λ / DT parameter rows)'));
+    return;
+  }
+  if (k === 'research-prism'){
+    // v3.2：Prism 宽表模板（每笼一行，列式排布，供 GraphPad Prism 直接导入）
+    var rows = [['笼号','品系','世代','卵','L1','L2','L3','L4','蛹','成虫','终末成虫','累积存活率%','卵历期天','幼虫历期天','蛹历期天','平均温度C','起始日期','结束日期','结束原因']];
+    batches.filter(function(b){ return b.result; }).forEach(function(b){
+      function entry(st){ var r = findStageRec(b, st); return r && typeof r.n === 'number' ? r.n : ''; }
+      rows.push([b.id, strains[b.strain] ? strains[b.strain].name : b.strain, b.gen,
+        b.eggs, entry('L1期'), entry('L2期'), entry('L3期'), entry('L4期'), entry('蛹期'), entry('成虫期'),
+        b.result.finalCount, fmt1(survPct(b)),
+        b.dur ? b.dur.egg : '', b.dur ? b.dur.larva : '', b.dur ? b.dur.pupa : '',
+        typeof b.avgT === 'number' ? b.avgT : '', b.start, b.result.closeDate, b.result.reason]);
+    });
+    downloadCsv('MosqCare_Prism宽表.csv', rows);
+    toast(T('已导出 Prism 宽表 CSV（每笼一行、列式排布，可直接导入 GraphPad Prism）', 'Prism wide-format CSV exported (one row per cage, column-oriented, ready for GraphPad Prism)'));
+    return;
+  }
+  if (k === 'research-act'){
+    // v3.2：活动分析科研导出（会话汇总 + 昼夜节律 24 小时聚合 + 光暗相参数）
+    var rows = [['会话','蚊笼','摄像头','开始时刻','时长秒','平均活跃度指数','峰值活跃度指数','平均目标计数','视频文件']];
+    actSessions.forEach(function(s){
+      rows.push([s.id, s.cage, s.cam, s.start, s.dur, fmt1(s.meanAI), fmt1(s.peakAI), s.meanCnt == null ? '' : fmt1(s.meanCnt), (s.video && s.video.name) || '']);
+    });
+    var prof = actSessions.length ? MosqResearch.circadian(actSessions) : null;
+    rows.push([]);
+    rows.push(['小时','活跃度指数均值','采样数','相位']);
+    if (prof){
+      for (var h = 0; h < 24; h++){
+        if (prof.hourMean[h] === null) continue;
+        rows.push([h + ':00–' + ((h + 1) % 24) + ':00', fmt1(prof.hourMean[h]), prof.hourN[h], (h >= 6 && h < 20) ? '光相' : '暗相']);
+      }
+      rows.push([]);
+      rows.push(['总体活跃度指数均值', fmt1(prof.overall)]);
+      rows.push(['峰值时段', prof.peakHour >= 0 ? prof.peakHour + ':00–' + ((prof.peakHour + 1) % 24) + ':00' : '']);
+      rows.push(['光相均值（06–20）', prof.lightMean === null ? '' : fmt1(prof.lightMean)]);
+      rows.push(['暗相均值（20–06）', prof.darkMean === null ? '' : fmt1(prof.darkMean)]);
+      rows.push(['说明', '光相按默认光周期 14L:10D、06:00 起光相假设划分']);
+    }
+    downloadCsv('MosqCare_活动度与昼夜节律.csv', rows);
+    toast(T('已导出活动度与昼夜节律 CSV（会话汇总 + 24 小时聚合 + 光暗相参数）', 'Activity & circadian CSV exported (session summary + 24 h aggregation + phase parameters)'));
     return;
   }
   if (k === 'alerts'){
@@ -1561,7 +2492,7 @@ var colS1 = '#2563eb', colS2 = '#0ea5e9';
 function scolor(k){ return k === 'S1' ? colS1 : colS2; }
 function renderAnalytics(){ MCStore.save();
   var f = state.ana;
-  if (!batches.length){ $('#ana-charts').innerHTML = '<div class="empty">' + tr('暂无数据：新建蚊笼或从 CSV 导入后，此处将自动生成统计。') + '</div>'; $('#ana-table').innerHTML = ''; return; }
+  if (!batches.length){ $('#ana-charts').innerHTML = '<div class="empty">' + tr('暂无数据：新建蚊笼或从 CSV 导入后，此处将自动生成统计。') + '</div>'; $('#ana-table').innerHTML = ''; renderResearch(); return; }
   var closed = batches.filter(function(b){ return b.status !== 'rearing'; });
   if (f.strain !== 'all') closed = closed.filter(function(b){ return b.strain === f.strain; });
   if (f.range === '30') closed = closed.filter(function(b){ return b.start >= '2026-10-06'; });
@@ -1661,6 +2592,7 @@ function renderAnalytics(){ MCStore.save();
   $('#ana-table').innerHTML = '<div class="ana-btns">' +
     '<div class="ana-btn-card" onclick="openAnaExtra(\'tbl\')"><b>' + tr('产能报表') + '</b><span>' + tr('已结束蚊笼明细：起始卵量 / 终末数量 / 累积存活率 / 平均温度 / 结束原因') + '</span></div>' +
     '<div class="ana-btn-card" onclick="openAnaExtra(\'scatter\')"><b>' + tr('环境与存活关联') + '</b><span>' + tr('蚊笼平均温度 × 累积存活率 散点图（仅呈现相关性）') + '</span></div></div>';
+  renderResearch();
 }
 function anaClosed(){
   var f = state.ana;
@@ -1712,6 +2644,7 @@ function importPreset(){
   var p = presetData();
   strains = p.strains; batches = p.batches; alerts = p.alerts;
   seq = p.seq; alertSeq = p.alertSeq; state.currentBatch = p.currentBatch;
+  actSessions = p.sessions || []; actSeq = actSessions.length;   // v3.2：预设含示例监测会话
   renderAll(); toast(tr('已导入预设数据'));
 }
 var clearArmed = false, clearTimer = null;
@@ -1727,7 +2660,8 @@ function clearAllData(){
   batches.length = 0;
   Object.keys(strains).forEach(function(k){ delete strains[k]; });
   alerts.length = 0;
-  seq = 1; alertSeq = 1;
+  actSessions.length = 0;   // v3.2：预设清除时同步清空监测会话
+  seq = 1; alertSeq = 1; actSeq = 0;
   state.currentBatch = null;
   renderAll();
   navigate('settings');
@@ -1780,7 +2714,7 @@ document.addEventListener('click', function(e){
 });
 document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeModal(); });
 // ================= 初始化 =================
-function renderAll(){ renderDashboard(); renderStrains(); renderBatches(); renderDetail(); renderAnalytics(); renderAlerts(); renderSettings(); }
+function renderAll(){ renderDashboard(); renderStrains(); renderBatches(); renderDetail(); renderAnalytics(); checkOvipReminder(); checkForecastDeviation(); renderAlerts(); renderSettings(); }
 // v2.2：桌面版启动时先从安装目录 data/ 与 result/ 恢复上次数据，再渲染
 mcBoot().then(function(loaded){
   if (MC_DISK && loaded) toast(T('已从本地数据文件夹恢复上次记录', 'Restored previous records from the local data folder'));

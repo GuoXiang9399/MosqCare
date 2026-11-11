@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>MosqCare 蚊媒饲养工作台 · v2.2</title>
+<title>MosqCare 蚊媒饲养工作台 · v3.4</title>
 <style>
 *{box-sizing:border-box}
 html,body{margin:0;padding:0}
@@ -281,7 +281,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 </head>
 <body>
 <header class="topbar">
-  <div class="tb-title">MosqCare · 蚊媒饲养工作台<span class="tb-ver">v2.2 · 2026-11-08 发布</span></div>
+  <div class="tb-title">MosqCare · 蚊媒饲养工作台<span class="tb-ver">v3.4 · 2026-11-10 发布</span></div>
 </header>
 <div class="app">
   <aside class="proto-pane">
@@ -361,6 +361,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
                 <div id="bd-header"></div>
                 <div class="region-title" style="margin-top:14px;font-size:12.5px;margin-bottom:4px">生命周期进度</div>
                 <div class="stepper" id="bd-stepper"></div>
+                <div id="bd-forecast"></div>
                 <div class="region-title" style="margin-top:16px;font-size:12.5px;margin-bottom:4px">记录时间线</div>
                 <div class="tl" id="bd-timeline"></div>
               </div>
@@ -370,6 +371,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
               <div class="ptabs" id="iot-ptabs">
                 <button data-ptab="local" class="active" onclick="switchIotTab('local')">本地接入</button>
                 <button data-ptab="mijia" onclick="switchIotTab('mijia')">米家 IoT</button>
+                <button data-ptab="serial" onclick="switchIotTab('serial')">USB 串口</button>
               </div>
               <div class="ptab-pane active" id="iotp-local">
                 <div class="region">
@@ -381,7 +383,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
                     <button class="mini-btn ghost" onclick="stopAllLocCams()">全部关闭</button>
                   </div>
                   <div id="loc-cam-grid" class="loc-cam-grid"></div>
-                  <p style="font-size:12px;color:#64748b;line-height:1.7;margin:10px 0 0">多路接入本机摄像头同时监测多笼：每路画面独立分析（降采样 192×144、约 10 fps），红色覆盖为算法识别的运动区域；设备可固定绑定蚊笼，监测会话自动继承绑定。活动度算法已通过合成真值自动验证（计数 MAE ≤ 1.5、活跃度线性 R² ≥ 0.9、昼夜节律 r ≥ 0.85）。外接温湿度传感器的本机读取将在后续版本提供，当前可使用「米家 IoT」页签的自动采集。</p>
+                  <p style="font-size:12px;color:#64748b;line-height:1.7;margin:10px 0 0">多路接入本机摄像头同时监测多笼：每路画面独立分析（降采样 192×144、约 10 fps），红色覆盖为算法识别的运动区域；设备可固定绑定蚊笼，监测会话自动继承绑定。活动度算法已通过合成真值自动验证（计数 MAE ≤ 1.5、活跃度线性 R² ≥ 0.9、昼夜节律 r ≥ 0.85）。外接温湿度传感器请使用「USB 串口」页签接入（Modbus RTU）。</p>
                 </div>
                 <div class="region">
                   <div class="region-title">活动监测会话<span class="tag" style="background:#eff6ff;color:#1d4ed8">每秒采样 · 可导出 CSV</span></div>
@@ -416,6 +418,55 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
                   <div class="cage-grid" id="iot-plugs"></div>
                 </div>
               </div>
+              <div class="ptab-pane" id="iotp-serial">
+                <div class="region">
+                  <div class="region-title">USB 串口 / USB 直插环境监测<span class="tag" style="background:#ecfeff;color:#0e7490">RS485 · Modbus RTU / TEMPer HID</span><button class="goto-btn" data-iot-help="serial">接入指南</button></div>
+                  <div class="filters" style="margin-bottom:0">
+                    <span>接入方式</span>
+                    <select id="ser-src" style="font-size:13px;padding:5px 8px;border:1px solid #cbd5e1;border-radius:6px">
+                      <option value="rs485">RS485 总线（Modbus RTU）</option>
+                      <option value="hid">USB 直插（HID · TEMPer）</option>
+                    </select>
+                    <span>串口</span>
+                    <select id="ser-port-sel" style="font-size:13px;padding:5px 8px;border:1px solid #cbd5e1;border-radius:6px;max-width:220px"><option value="">选择串口…</option></select>
+                    <button class="mini-btn ghost" onclick="refreshSerialPorts()">刷新端口</button>
+                    <span>波特率</span>
+                    <select id="ser-baud" style="font-size:13px;padding:5px 8px;border:1px solid #cbd5e1;border-radius:6px">
+                      <option>9600</option><option>19200</option><option>38400</option><option>57600</option><option selected>115200</option>
+                    </select>
+                    <button class="mini-btn" id="ser-btn" onclick="toggleSerial()">连接</button>
+                    <label class="checkline" style="margin-left:4px"><input type="checkbox" id="ser-demo"> 模拟读数</label>
+                  </div>
+                  <div class="filters" style="margin-top:8px">
+                    <span>HID 设备</span>
+                    <select id="hid-sel" style="font-size:13px;padding:5px 8px;border:1px solid #cbd5e1;border-radius:6px;max-width:240px"><option value="">选择 HID 设备…</option></select>
+                    <button class="mini-btn ghost" onclick="refreshHidDevs()">刷新设备</button>
+                    <button class="mini-btn ghost" onclick="serHidAdd()">添加设备</button>
+                    <span style="font-size:11.5px;color:#94a3b8">插入 TEMPer 系列 USB 温度计后刷新；句柄在连接时自动打开</span>
+                  </div>
+                  <div class="filters" style="margin-top:8px">
+                    <span>探头列表</span>
+                    <span id="ser-devs" style="display:flex;gap:6px;flex-wrap:wrap"></span>
+                    <input id="ser-dev-name" type="text" placeholder="名称（可选）" style="font-size:13px;padding:5px 8px;border:1px solid #cbd5e1;border-radius:6px;width:120px">
+                    <input id="ser-dev-addr" type="number" min="1" max="247" value="2" style="font-size:13px;padding:5px 8px;border:1px solid #cbd5e1;border-radius:6px;width:64px" title="从站地址">
+                    <select id="ser-dev-type" style="font-size:13px;padding:5px 8px;border:1px solid #cbd5e1;border-radius:6px" title="设备类型">
+                      <option value="th">温湿度</option><option value="co2">CO₂</option><option value="lux">光照度</option><option value="pa">负压</option>
+                    </select>
+                    <input id="ser-dev-start" type="number" min="0" value="0" style="font-size:13px;padding:5px 8px;border:1px solid #cbd5e1;border-radius:6px;width:64px" title="起始地址">
+                    <input id="ser-dev-scale" type="number" step="0.1" min="0.001" value="0.1" style="font-size:13px;padding:5px 8px;border:1px solid #cbd5e1;border-radius:6px;width:70px" title="倍率">
+                    <button class="mini-btn ghost" onclick="serDevAdd()">添加探头</button>
+                    <span style="font-size:11.5px;color:#94a3b8">寄存器映射按厂商而异，可修改起始地址与倍率</span>
+                  </div>
+                  <div class="filters" style="margin-top:8px">
+                    <span>标准限值模板</span>
+                    <select id="thr-preset" onchange="applyThrPreset(this.value)" style="font-size:13px;padding:5px 8px;border:1px solid #cbd5e1;border-radius:6px"></select>
+                    <span style="font-size:11.5px;color:#94a3b8">WHO 两代方法温度标准不同（接触测定 25±2℃ / 瓶测定 27±2℃），请按所用方法版本选择</span>
+                  </div>
+                  <p style="font-size:12px;color:#64748b;line-height:1.7;margin:10px 0 0">连接 USB 转 RS485 适配器与 Modbus RTU 变送器（8-N-1；默认寄存器映射：0x0000 湿度、0x0001 温度，0.1 倍率），点「连接」后每 5 秒轮询全部探头并实时显示曲线；读数超出阈值自动生成预警，监测读数留存 result/env_*.json（桌面版）。桌面版另支持 TEMPer 系列 USB 温度计直插（HID，免驱动）与 CO₂ / 光照度 / 负压扩展参数变送器（设备类型可选，起始地址与倍率可按说明书修改）。无硬件时可勾选「模拟读数」体验全流程。</p>
+                  <div id="ser-live"></div>
+                  <canvas id="ser-chart" class="act-chart" width="820" height="200"></canvas>
+                </div>
+              </div>
             </section>
             <!-- ================= 统计分析 ================= -->
             <section class="page" id="page-analytics">
@@ -426,9 +477,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
               </div>
               <div class="ptab-pane active" id="anap-surv">
                 <div class="region" id="region-analytics" style="margin-top:12px">
-                  <div class="region-title">统计分析
-                    <button class="mini-btn" data-export="analytics">导出 CSV</button>
-                  </div>
+                  <div class="region-title">统计分析</div>
                   <div class="filters" style="margin-top:10px">
                     <span>品系</span>
                     <select id="ana-strain" onchange="setAna('strain',this.value)">
@@ -442,10 +491,24 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
                 </div>
                 <div id="ana-charts"></div>
                 <div id="ana-table"></div>
+                <div class="region" style="margin-top:12px">
+                  <div class="region-title">科研分析（KM 生存曲线 · 生命表）
+                    <button class="mini-btn" data-export="research-surv">导出生存长表 CSV</button>
+                    <button class="mini-btn" data-export="research-life">导出生命表 CSV</button>
+                    <button class="mini-btn" data-export="research-prism">导出 Prism 宽表 CSV</button>
+                  </div>
+                  <div id="sci-km"></div>
+                </div>
+                <div id="sci-life"></div>
+                <div id="sci-cal"></div>
+                <div id="sci-briere"></div>
+                <div id="sci-yield"></div>
               </div>
               <div class="ptab-pane" id="anap-act">
                 <div class="region" style="margin-top:12px">
-                  <div class="region-title">活动分析<span class="tag" style="background:#eff6ff;color:#1d4ed8">来自「硬件接入 → 本地接入」的监测会话</span></div>
+                  <div class="region-title">活动分析<span class="tag" style="background:#eff6ff;color:#1d4ed8">来自「硬件接入 → 本地接入」的监测会话</span>
+                    <button class="mini-btn ghost" data-export="research-act">导出昼夜节律 CSV</button>
+                  </div>
                   <div class="kpis" id="act-kpis" style="grid-template-columns:repeat(4,1fr)"></div>
                   <div class="filters" style="margin-top:10px">
                     <span>选择会话</span>
@@ -454,6 +517,9 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
                   <canvas id="act-ch1" class="act-chart" width="820" height="190"></canvas>
                   <canvas id="act-ch2" class="act-chart" width="820" height="150"></canvas>
                   <div id="act-detail" style="margin-top:10px"></div>
+                  <div class="region-title" style="font-size:12.5px;margin-top:16px;margin-bottom:8px">昼夜节律（按小时聚合 · 全部会话）</div>
+                  <canvas id="act-circadian" class="act-chart" width="820" height="190"></canvas>
+                  <div id="act-cir-note" class="ana-note" style="margin-top:6px"></div>
                 </div>
                 <div class="region">
                   <div class="region-title">监测会话列表</div>
@@ -477,6 +543,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
                     <div class="fw"><label>温度上限（℃）</label><input type="number" id="th-temp-high" value="28"></div>
                     <div class="fw"><label>湿度下限（%）</label><input type="number" id="th-hum-low" value="65"></div>
                     <div class="fw"><label>湿度上限（%）</label><input type="number" id="th-hum-high" value="85"></div>
+                    <div class="fw"><label>CO₂ 阈值（ppm）</label><input type="number" id="th-co2-high" value="1000"></div>
                     <div class="fw"><label>累积存活率下限（%）</label><input type="number" id="th-surv" value="80"></div>
                     <div class="fw"><label>饲喂间隔上限（h，卵–L4 期）</label><input type="number" id="th-feed-gap" value="24"></div>
                     <div class="fw"><label>记录断档上限（h）</label><input type="number" id="th-rec-gap" value="48"></div>
@@ -517,11 +584,16 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
             <section class="page" id="page-about">
               <div class="region" style="margin-top:0">
                 <div class="region-title">关于</div>
-                <p style="font-size:13px;color:#334155;line-height:1.7;margin:0;padding-left:12px"><b>MosqCare 蚊媒饲养工作台</b> · v2.2<br>面向个人 / 小实验室的蚊虫饲养过程管理工具：记录、统计、分析、可视化。单机使用，无账号体系。</p>
+                <p style="font-size:13px;color:#334155;line-height:1.7;margin:0;padding-left:12px"><b>MosqCare 蚊媒饲养工作台</b> · v3.4<br>面向个人 / 小实验室的蚊虫饲养过程管理工具：记录、统计、分析、可视化。单机使用，无账号体系。</p>
                 <div class="region-title" style="font-size:12.5px;margin:14px 0 6px"><b>开发者</b></div>
                 <p style="font-size:12.5px;color:#475569;line-height:1.8;margin:0 0 8px;padding-left:12px">河南大学基础医学院 / 河南大学深圳研究院 郭祥<br>School of Basic Medical Sciences, Henan University / Shenzhen Research Institute, Henan University.</p>
                 <div class="region-title" style="font-size:12.5px;margin:14px 0 6px">更新日志</div>
                 <ul style="font-size:12.5px;color:#475569;line-height:1.8;margin:0 0 8px 18px">
+                  <li><b>v3.4</b> — 感知扩展：① TEMPer USB 温度计直插（HID）：桌面版经自研纯 Rust HID 命令枚举 / 读取 PCsensor TEMPer 家族设备（免驱动、零 C 编译依赖），接入方式新增「USB 直插（HID）」，与 RS485 总线并存，读数同样进入实时曲线、阈值预警与 result/env_*.json 留存；② Modbus 扩展参数设备：探头类型由温湿度扩展为四类（温湿度 / CO₂ / 光照度 / 负压），寄存器起始地址与倍率可按设备说明书修改，CO₂ 超阈值自动生成预警；③ 继电器联动建议条：温度 / 湿度 / CO₂ 偏离阈值时在监测卡片区内联给出风扇降温、加热保温、加湿、通风除湿、通风换气建议（连续两轮命中同一组合才显示；仅作页内建议，不下发任何控制指令，不进预警中心）；④ 科研分析新增「Brière 发育速率拟合」：复用发育校准样本拟合非线性发育速率曲线 r(T) = c·T·(T−T₀)·(T_L−T)^0.5（对 (T₀, T_L) 做 0.5℃ 网格搜索、c 取过原点最小二乘解析解），与同样本线性积温回归 r² 对比呈现，样本 <4 个或温度跨度 <5℃ 时诚实拒绝拟合，r²<0.5 标记拟合较弱；算法独立注册为 briere v0.1（script/algo/briere.v0.1.js）。</li>
+                  <li><b>v3.3</b> — 饲养结果预测（积温模型 GDD）：新增发育预测模块（算法独立注册为 forecast v0.1，script/algo/forecast.v0.1.js）——① 蚊笼详情新增「发育预测」卡：线性积温模型（GDD = Σ max(0, T̄日 − T₀)，超过上限发育温度按上限截断）逐日累计笼环境温度有效积温，内置文献热常数按品系拉丁名自动匹配（埃及伊蚊 T₀=8.3℃/K=181.2 日·度、白纹伊蚊幼虫期 K=105.26 + 卵/蛹期假设补偿、斯氏按蚊 K=187.7/上限 38℃ 截断、尖音库蚊复合群雌雄均值），给出预计羽化日倒计时、积温轨道进度与实际阶段进度双轨对比；环境记录缺失日顺延前值、连续缺失超 3 天或无记录按 26℃ 假设计入并标注覆盖率；② 发育偏差预警：积温轨道进度与实际阶段推进（卵→成虫六级序）偏差超阈值自动生成预警（临近羽化 / 超前 / 迟缓，分提示与警告两级），并给出温度、密度、饲料、水质排查建议；③ 科研分析（生存分析页签）新增「预测参数校准」：同品系已结束蚊笼 1/D × 平均温度线性回归（发育起点 T₀ 与有效积温 K），有效样本 ≥6 笼启用本地校准并覆盖文献默认值，界面明示文献值/校准值来源；「羽化产量区间」：同品系已结束笼累积存活率 P10/P50/P90 分位 × 在养笼起始卵量的产量区间估计，样本 ≥10 批次才显示；④ 全部预测附带诚实脚注：相关性非因果预测、基于笼环境温度（幼虫实际受水温驱动）、文献热常数存在株间差异（±20–30%）、未纳入密度/饲料/水质等因子。</li>
+                  <li><b>补完 v3.1 既定计划</b> — USB 串口环境监测升级为多探头：同一 RS485 总线手拉手接入多台变送器（各自设置不同从站地址），「探头列表」登记后每 5 秒按从站地址顺序轮询全部探头（RS485 半双工 Promise 链不可并发），探头列表本地记忆；新增多探头实时温湿度曲线（最近 12 分钟窗口，左轴温度自适应 + 阈值带、右轴湿度 0–100%，实线温度 / 虚线湿度，各探头配色区分）；新增标准限值模板一键套用（常规饲养 / WHO 成蚊接触测定 25±2℃·80±10%RH / WHO 瓶测定 27±2℃ / IAEA 伊蚊规模化饲养 26±1℃·70±5%RH，套用后可在预警阈值中微调）；新增血饲-产卵日历提醒（FAO/IAEA：血饲后约 3 天产卵，按最近一次血饲记录自动推算预计产卵日并生成提示级预警，收集到子笼后自动关闭）；预警中心支持「提示」级样式。</li>
+                  <li><b>v3.2</b> — 科研分析融合：生存分析页签内新增科研分析区——① KM 生存曲线（生命表法，按品系池化已结束蚊笼，结笼未死亡个体按删失处理）与两组 log-rank 检验（χ² 与 p 值）；② 池化阶段生命表（l_x / d_x / 100q_x）与表观净繁殖率 R₀、世代均时 T、内禀增长率 rₘ（近似估算）、周限增长率 λ、倍增时间 DT 自动计算；③ 各分析导出全面科研化：生存分析提供生存长表 CSV（R survival / Python lifelines 即用）、生命表 CSV 与 Prism 宽表模板 CSV（每笼一行、列式排布，GraphPad 直接导入），活动分析新增昼夜节律汇总 CSV；④ 活动分析新增昼夜节律图（全部监测会话按一天 24 小时聚合的活跃度指数分布，标注峰值时段，光相 / 暗相均值对比）；算法独立注册为 research v0.1 模块（script/algo/research.v0.1.js），便于迭代与复现。</li>
+                  <li><b>v3.0</b> — 环境因子硬件接入（一期）：新增「硬件接入 → USB 串口」页签，通过 USB 转 RS485 适配器直连 Modbus RTU 温湿度变送器（8-N-1，SHT 系列默认寄存器映射：0x0000 湿度、0x0001 温度，0.1 倍率），支持串口扫描、波特率与从站地址配置、每 5 秒轮询实时温湿度读数；读数超出阈值自动生成预警；监测读数留存 result/env_*.json（桌面版）；内置模拟读数模式，无硬件也可演示全流程；接入指南同步更新。</li>
                   <li><b>v2.2</b> — 数据本地落盘：安装目录自动生成 data/（品系、蚊笼、预警）与 result/（监测会话、视频、导出文件），所有记录实时写入本地，关闭软件不丢失；监测视频默认留存 result/videos/ 并可导出；CSV 导出同步留存 result/exports/；启动自动恢复上次数据，用户放入 data/ 的品系档案 / 蚊笼列表 CSV 也会被读取合并；新增系统托盘：关闭窗口后台驻留，右下角托盘图标常驻入口（左键显示主界面，菜单可退出）；安装改为当前用户级（无需管理员权限）；单页报告打印版式优化（打印页隐藏弹窗标题栏、A4 页边距收紧、表头居中不换行、日期列单行、未填写操作人留空）。</li>
                   <li><b>v2.1</b> — 修复本地接入预览黑屏（显示画布未逐帧绘制）；监测记录新增同步录制摄像头视频（WebM，停止记录后自动下载留存）；CSV 导出全面实装（蚊笼列表/全部管理记录、品系档案含关联蚊笼与代际分布、品系代际关系、统计分析、预警中心）；工程结构拆分为 index.html + script/（i18n、算法、应用）+ data/（预设数据）+ result/（结果留存），算法版本化注册便于迭代与复现。</li>
                   <li><b>v2.0</b> — 新增「硬件接入 → 本地接入」：本机摄像头多路接入，每路独立实时蚊虫活动度分析（运动能量 + 目标计数双指标算法，阈值自适应、画面仅在本机处理），设备固定绑定蚊笼，支持监测会话管理与 CSV 导出；统计分析升级为多页签（生存分析 / 活动分析 / 环境分析），环境分析新增蚊笼温度带、温度–存活率关联与湿度概览；原 IoT 接入内容并入「米家 IoT」页签。</li>
@@ -715,7 +787,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
     <div class="doc-body doc" id="doc-body">
       <div class="doc-meta">
         <b>MosqCare · 蚊媒饲养工作台 产品需求文档（交互式）</b><br>
-        版本 v2.2 · 2026-11-08<br>
+        版本 v3.4 · 2026-11-10<br>
         定位：个人 / 小实验室<b>单机使用</b>的蚊虫饲养过程管理工具，覆盖记录、统计、分析与可视化。<br>
         阅读方式：默认呈现为可交互的软件预览（全屏原型）；本需求文档内容保留于文件内，供评审时查阅。
       </div>
@@ -1035,6 +1107,9 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 <script src="script/i18n.js"></script>
 <script src="script/algo/registry.js"></script>
 <script src="script/algo/activity.v0.1.js"></script>
+<script src="script/algo/research.v0.1.js"></script>
+<script src="script/algo/forecast.v0.1.js"></script>
+<script src="script/algo/briere.v0.1.js"></script>
 <script src="script/persistence.js"></script>
 <script src="script/app.js"></script>
 </bo
