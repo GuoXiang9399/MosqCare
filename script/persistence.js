@@ -22,6 +22,8 @@ var MCStore = {
       mcInvoke('mc_write', {rel: 'data/cages.json', content: JSON.stringify({seq: seq, batches: batches})});
       mcInvoke('mc_write', {rel: 'data/alerts.json', content: JSON.stringify({alertSeq: alertSeq, alerts: alerts})});
       mcInvoke('mc_write', {rel: 'result/sessions.json', content: JSON.stringify({actSeq: actSeq, actSessions: actSessions})});
+      mcInvoke('mc_write', {rel: 'data/assays.json', content: JSON.stringify({assaySeq: assaySeq, assays: assays})});
+      mcInvoke('mc_write', {rel: 'data/wing.json', content: JSON.stringify({wingSeq: wingSeq, wings: wings})});
     } catch(e){}
   }
 };
@@ -35,7 +37,9 @@ function mcBoot(){
       mcInvoke('mc_read', {rel: 'data/strains.json'}).catch(function(){ return null; }),
       mcInvoke('mc_read', {rel: 'data/cages.json'}).catch(function(){ return null; }),
       mcInvoke('mc_read', {rel: 'data/alerts.json'}).catch(function(){ return null; }),
-      mcInvoke('mc_read', {rel: 'result/sessions.json'}).catch(function(){ return null; })
+      mcInvoke('mc_read', {rel: 'result/sessions.json'}).catch(function(){ return null; }),
+      mcInvoke('mc_read', {rel: 'data/assays.json'}).catch(function(){ return null; }),
+      mcInvoke('mc_read', {rel: 'data/wing.json'}).catch(function(){ return null; })
     ]);
   }).then(function(res){
     try {
@@ -43,6 +47,8 @@ function mcBoot(){
       if (res[1]){ var o = JSON.parse(res[1]); if (o && o.batches){ batches = o.batches; seq = o.seq || (batches.length + 1); } }
       if (res[2]){ var o = JSON.parse(res[2]); if (o && o.alerts){ alerts = o.alerts; alertSeq = o.alertSeq || (alerts.length + 1); } }
       if (res[3]){ var o = JSON.parse(res[3]); if (o && o.actSessions){ actSessions = o.actSessions; actSeq = o.actSeq || actSessions.length; } }
+      if (res[4]){ var o = JSON.parse(res[4]); if (o && o.assays){ assays = o.assays; assaySeq = o.assaySeq || (assays.length + 1); } }
+      if (res[5]){ var o = JSON.parse(res[5]); if (o && o.wings){ wings = o.wings; wingSeq = o.wingSeq || (wings.length + 1); } }
     } catch(e){}
     return mcImportUserCsv().then(function(n){
       if (n > 0) MCStore.flush();
@@ -52,7 +58,7 @@ function mcBoot(){
 }
 function mcImportUserCsv(){
   return mcInvoke('mc_list', {rel: 'data'}).then(function(names){
-    var strainCsv = names.filter(function(n){ return /品系档案.*\.csv$/i.test(n); })[0];
+    var strainCsv = names.filter(function(n){ return /(?:蚊株档案|品系档案|蚊株记录).*\.csv$/i.test(n); })[0];
     var cageCsv = names.filter(function(n){ return /蚊笼列表.*\.csv$/i.test(n); })[0];
     return Promise.all([
       strainCsv ? mcInvoke('mc_read', {rel: 'data/' + strainCsv}) : Promise.resolve(null),

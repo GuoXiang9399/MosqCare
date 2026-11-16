@@ -3,7 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>MosqCare 蚊媒饲养工作台 · v3.4</title>
+<title>MosqCare 蚊媒饲养工作台 · v4.0</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22 viewBox%3D%220 0 64 64%22%3E%3Csymbol id%3D%22mc-logo%22 viewBox%3D%220 0 64 64%22%3E%3Crect x%3D%222%22 y%3D%222%22 width%3D%2260%22 height%3D%2260%22 rx%3D%2214%22 fill%3D%22%23333D7A%22%2F%3E%3Cg fill%3D%22%23fff%22%3E%3Cpath d%3D%22M5.5 23.5 L21 27 L20.5 31 L7.5 26.5 Z%22%2F%3E%3Ccircle cx%3D%2221.5%22 cy%3D%2228.5%22 r%3D%224%22%2F%3E%3Cellipse cx%3D%2227.5%22 cy%3D%2231.5%22 rx%3D%226%22 ry%3D%225.5%22%2F%3E%3Cellipse cx%3D%2240%22 cy%3D%2235.5%22 rx%3D%2212%22 ry%3D%224.4%22 transform%3D%22rotate(16 40 35.5)%22%2F%3E%3Cellipse cx%3D%2234%22 cy%3D%2224%22 rx%3D%2213%22 ry%3D%224.6%22 transform%3D%22rotate(-15 34 24)%22%2F%3E%3C%2Fg%3E%3Cg fill%3D%22none%22 stroke%3D%22%23fff%22 stroke-linecap%3D%22round%22%3E%3Cpath d%3D%22M20 24.8 Q17.8 22.4 16 21.8%22 stroke-width%3D%221.1%22%2F%3E%3Cpath d%3D%22M24.5 35.5 Q20.5 42 22 48.5%22 stroke-width%3D%221.4%22%2F%3E%3Cpath d%3D%22M28.5 37 Q27.5 44.5 30.5 51%22 stroke-width%3D%221.4%22%2F%3E%3Cpath d%3D%22M33 36.5 Q35 44 40 50%22 stroke-width%3D%221.4%22%2F%3E%3Cpath d%3D%22M36.5 34.5 Q42.5 41 48.5 45.5%22 stroke-width%3D%221.4%22%2F%3E%3Cpath d%3D%22M23.5 34 Q17.5 38 13.5 44.5%22 stroke-width%3D%221.4%22%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E">
 <style>
 *{box-sizing:border-box}
 html,body{margin:0;padding:0}
@@ -12,8 +13,9 @@ button{font-family:inherit;cursor:pointer}
 button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid #2563eb;outline-offset:1px}
 /* ---------- top bar ---------- */
 .topbar{position:sticky;top:0;z-index:60;height:52px;background:#0f172a;color:#e2e8f0;display:flex;align-items:center;justify-content:space-between;padding:0 16px}
-.tb-title{font-weight:600;font-size:15px}
-.tb-ver{font-weight:400;font-size:12px;color:#94a3b8;margin-left:10px}
+.tb-title{font-weight:600;font-size:15px;display:flex;align-items:center;gap:8px}
+.tb-title .tb-ico{flex:none}
+.tb-ver{font-weight:400;font-size:12px;color:#94a3b8;margin-left:2px}
 /* ---------- split layout ---------- */
 .app{display:flex;height:calc(100vh - 52px);overflow:hidden}
 .proto-pane{flex:1;min-width:0;display:flex;flex-direction:column;padding:0}
@@ -23,7 +25,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 .proto-app{display:flex;min-height:100%}
 /* ---------- proto sidebar ---------- */
 .proto-sidebar{flex:none;width:148px;background:#13315c;color:#b6c7e0;padding:14px 10px;display:flex;flex-direction:column;gap:4px}
-.ps-logo{color:#fff;font-weight:700;font-size:15px;padding:4px 8px 14px;letter-spacing:.5px}
+.ps-logo{color:#fff;font-weight:700;font-size:15px;padding:4px 8px 14px;letter-spacing:.5px;display:flex;align-items:center;gap:8px}
 .ps-item{display:flex;align-items:center;gap:8px;padding:9px 10px;border-radius:8px;font-size:13.5px;color:#c0d2ee;border:0;background:none;text-align:left;width:100%}
 .ps-item .ico{width:16px;text-align:center;flex:none}
 .ps-item.active{background:#2563eb;color:#fff;font-weight:600}
@@ -121,6 +123,25 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
   body.print-report #modal-report .m-title{display:none}
   body.print-report .rp-sheet{max-height:none;overflow:visible;border:none;padding:0}
 }
+/* ---------- v3.6 标签打印 / 测定倒计时 ---------- */
+.label-sheet{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.lab{border:1px dashed #94a3b8;border-radius:8px;padding:8px;display:flex;gap:8px;align-items:center;min-height:40mm;background:#fff;page-break-inside:avoid}
+.lab .lab-qr{flex:none}
+.lab .lab-body{font-size:11px;color:#1e293b;line-height:1.5;min-width:0}
+.lab .lab-id{font-size:15px;font-weight:700;color:#0f172a}
+.lab .lab-sub{color:#475569}
+.lab .lab-foot{margin-top:3px;color:#64748b;font-size:10px}
+.assay-cd{font-variant-numeric:tabular-nums;font-weight:700}
+@media print{
+  @page{size:A4;margin:12mm}
+  body.print-label *{visibility:hidden}
+  body.print-label #modal-label, body.print-label #modal-label *{visibility:visible}
+  body.print-label .modal-layer{position:static;padding:0;background:none;overflow:visible;display:block}
+  body.print-label #modal-label{position:static;width:100% !important;max-width:none;padding:0;margin:0;box-shadow:none;border-radius:0}
+  body.print-label #modal-label .m-title{display:none}
+  body.print-label .label-sheet{grid-template-columns:repeat(3,1fr);gap:4mm}
+  body.print-label .lab{border:1px solid #94a3b8;height:38mm;min-height:38mm}
+}
 .lvl{font-size:11px;padding:2px 6px;border-radius:5px;flex:none}
 .lvl-warn{background:#fef3c7;color:#92400e}.lvl-info{background:#e0f2fe;color:#075985}.lvl-crit{background:#fee2e2;color:#991b1b}
 .lg-dot{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:4px;vertical-align:-1px}
@@ -203,11 +224,6 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 #ana-charts .empty{grid-column:1/-1}
 @media (max-width:760px){#ana-charts{grid-template-columns:1fr}}
 #ana-charts .bar-lbl{width:150px}
-.ana-btns{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:12px}
-.ana-btn-card{background:#fff;border:1px solid #bfdbfe;border-radius:10px;padding:12px 14px;cursor:pointer}
-.ana-btn-card:hover{background:#eff6ff;border-color:#93c5fd}
-.ana-btn-card b{display:block;font-size:13px;color:#1d4ed8}
-.ana-btn-card span{display:block;font-size:12px;color:#64748b;margin-top:3px}
 .chart-title{font-size:13px;font-weight:600;color:#334155;margin-bottom:8px}
 .bar-row{display:flex;align-items:center;gap:8px;margin-bottom:7px;font-size:12.5px}
 .bar-lbl{flex:none;width:200px;color:#475569;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -280,8 +296,10 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 </style>
 </head>
 <body>
+<!-- v3.5 品牌标识（可复用 inline SVG，侧边栏 / 顶栏 / 关于页共用；favicon 为同源 data-URI） -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><symbol id="mc-logo" viewBox="0 0 64 64"><rect x="2" y="2" width="60" height="60" rx="14" fill="#333D7A"/><g fill="#fff"><path d="M5.5 23.5 L21 27 L20.5 31 L7.5 26.5 Z"/><circle cx="21.5" cy="28.5" r="4"/><ellipse cx="27.5" cy="31.5" rx="6" ry="5.5"/><ellipse cx="40" cy="35.5" rx="12" ry="4.4" transform="rotate(16 40 35.5)"/><ellipse cx="34" cy="24" rx="13" ry="4.6" transform="rotate(-15 34 24)"/></g><g fill="none" stroke="#fff" stroke-linecap="round"><path d="M20 24.8 Q17.8 22.4 16 21.8" stroke-width="1.1"/><path d="M24.5 35.5 Q20.5 42 22 48.5" stroke-width="1.4"/><path d="M28.5 37 Q27.5 44.5 30.5 51" stroke-width="1.4"/><path d="M33 36.5 Q35 44 40 50" stroke-width="1.4"/><path d="M36.5 34.5 Q42.5 41 48.5 45.5" stroke-width="1.4"/><path d="M23.5 34 Q17.5 38 13.5 44.5" stroke-width="1.4"/></g></symbol></svg>
 <header class="topbar">
-  <div class="tb-title">MosqCare · 蚊媒饲养工作台<span class="tb-ver">v3.4 · 2026-11-10 发布</span></div>
+  <div class="tb-title"><svg class="tb-ico" width="20" height="20" aria-hidden="true"><use href="#mc-logo"/></svg><span>MosqCare · 蚊媒饲养工作台</span><span class="tb-ver">v4.0 · 2026-11-12 发布</span></div>
 </header>
 <div class="app">
   <aside class="proto-pane">
@@ -289,15 +307,17 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
       <div class="proto-viewport" id="proto-viewport">
         <div class="proto-app">
           <nav class="proto-sidebar">
-            <div class="ps-logo">MosqCare</div>
+            <div class="ps-logo"><svg width="24" height="24" aria-hidden="true"><use href="#mc-logo"/></svg>MosqCare</div>
             <button class="ps-item active" data-nav="dashboard"><span class="ico">◈</span>工作台</button>
-            <button class="ps-item" data-nav="strains"><span class="ico">✾</span>品系档案</button>
+            <button class="ps-item" data-nav="strains"><span class="ico">✾</span>蚊株档案</button>
             <button class="ps-item" data-nav="batches"><span class="ico">▤</span>蚊笼管理</button>
-            <button class="ps-item" data-nav="iot"><span class="ico">◉</span>硬件接入</button>
             <button class="ps-item" data-nav="analytics"><span class="ico">◫</span>统计分析</button>
+            <button class="ps-item" data-nav="assays"><span class="ico">⚗</span>抗药测定</button>
             <button class="ps-item" data-nav="alerts"><span class="ico">◆</span>预警中心</button>
             <div class="ps-sep"></div>
             <button class="ps-item" data-nav="settings"><span class="ico">≡</span>设置</button>
+            <button class="ps-item" data-nav="iot"><span class="ico">◉</span>硬件</button>
+            <button class="ps-item" data-nav="models"><span class="ico">⬡</span>模型</button>
             <button class="ps-item" data-nav="about"><span class="ico">ⓘ</span>关于</button>
             <div class="ps-foot">MosqCare</div>
           </nav>
@@ -312,14 +332,13 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
               <div class="dash-sep"></div>
               <div class="cage-grid" id="cage-grid" style="margin-top:12px"></div>
             </section>
-            <!-- ================= 品系档案 ================= -->
+            <!-- ================= 蚊株档案 ================= -->
             <section class="page" id="page-strains">
               <div class="region" id="region-strains">
-                <div class="region-title">品系档案
-                  <button class="mini-btn" data-open-modal="new-strain">＋ 新增品系</button>
-                  <button class="mini-btn" data-import="strains">导入 CSV</button>
-                  <button class="mini-btn" data-export="strains">导出 CSV</button>
-                  <button class="mini-btn ghost" data-export="strain-lineage">导出代际关系</button>
+                <div class="region-title">蚊株档案
+                  <button class="mini-btn" data-open-modal="new-strain">＋ 新增蚊株</button>
+                  <button class="mini-btn" data-import="strains">导入记录</button>
+                  <button class="mini-btn" data-export="strains">导出全部记录</button>
                 </div>
                 <div class="ana-note">点击品系卡片可查看该蚊株的代系关系与关联蚊笼。</div>
                 <div id="strain-cards" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px"></div>
@@ -329,10 +348,10 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
             <section class="page" id="page-batches">
               <div class="region" id="region-batches">
                 <div class="region-title">蚊笼列表
-                  <button class="mini-btn" data-import="cages">导入 CSV</button>
-                  <button class="mini-btn" data-export="cages">导出 CSV</button>
-                  <button class="mini-btn ghost" data-export="cage-records">导出全部记录</button>
-                  <button class="mini-btn" data-open-modal="new-batch">＋ 新建蚊笼</button>
+                  <button class="mini-btn" data-open-modal="new-batch">＋ 新增蚊笼</button>
+                  <button class="mini-btn" data-import="cages">导入记录</button>
+                  <button class="mini-btn" data-export="cage-records">导出全部记录</button>
+                  <button class="mini-btn ghost" onclick="openCageLabels('filter')">打印标签（当前筛选）</button>
                 </div>
                 <div class="filters">
                   <span>状态</span>
@@ -362,6 +381,8 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
                 <div class="region-title" style="margin-top:14px;font-size:12.5px;margin-bottom:4px">生命周期进度</div>
                 <div class="stepper" id="bd-stepper"></div>
                 <div id="bd-forecast"></div>
+                <div id="bd-devref"></div>
+                <div id="bd-qc"></div>
                 <div class="region-title" style="margin-top:16px;font-size:12.5px;margin-bottom:4px">记录时间线</div>
                 <div class="tl" id="bd-timeline"></div>
               </div>
@@ -370,8 +391,8 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
             <section class="page" id="page-iot">
               <div class="ptabs" id="iot-ptabs">
                 <button data-ptab="local" class="active" onclick="switchIotTab('local')">本地接入</button>
-                <button data-ptab="mijia" onclick="switchIotTab('mijia')">米家 IoT</button>
                 <button data-ptab="serial" onclick="switchIotTab('serial')">USB 串口</button>
+                <button data-ptab="mijia" onclick="switchIotTab('mijia')">米家 IoT</button>
               </div>
               <div class="ptab-pane active" id="iotp-local">
                 <div class="region">
@@ -381,18 +402,12 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
                     <select id="loc-dev-sel" style="font-size:13px;padding:5px 8px;border:1px solid #cbd5e1;border-radius:6px;max-width:260px"><option value="">选择设备…</option></select>
                     <button class="mini-btn" onclick="addLocCam()">添加摄像头</button>
                     <button class="mini-btn ghost" onclick="stopAllLocCams()">全部关闭</button>
+                    <span>备注</span>
+                    <input id="loc-note" style="font-size:13px;padding:5px 8px;border:1px solid #cbd5e1;border-radius:6px;width:170px">
+                    <span style="font-size:11.5px;color:#94a3b8">记录入口在各摄像头卡片上，会话自动继承该设备绑定的蚊笼；会话记录可在「统计分析 → 活动分析」查看</span>
                   </div>
                   <div id="loc-cam-grid" class="loc-cam-grid"></div>
                   <p style="font-size:12px;color:#64748b;line-height:1.7;margin:10px 0 0">多路接入本机摄像头同时监测多笼：每路画面独立分析（降采样 192×144、约 10 fps），红色覆盖为算法识别的运动区域；设备可固定绑定蚊笼，监测会话自动继承绑定。活动度算法已通过合成真值自动验证（计数 MAE ≤ 1.5、活跃度线性 R² ≥ 0.9、昼夜节律 r ≥ 0.85）。外接温湿度传感器请使用「USB 串口」页签接入（Modbus RTU）。</p>
-                </div>
-                <div class="region">
-                  <div class="region-title">活动监测会话<span class="tag" style="background:#eff6ff;color:#1d4ed8">每秒采样 · 可导出 CSV</span></div>
-                  <div class="filters">
-                    <span>备注</span>
-                    <input id="loc-note" style="font-size:13px;padding:5px 8px;border:1px solid #cbd5e1;border-radius:6px;width:170px">
-                    <span style="font-size:11.5px;color:#94a3b8">记录入口在各摄像头卡片上，会话自动继承该设备绑定的蚊笼</span>
-                  </div>
-                  <div id="loc-sessions"></div>
                 </div>
               </div>
               <div class="ptab-pane" id="iotp-mijia">
@@ -462,9 +477,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
                     <select id="thr-preset" onchange="applyThrPreset(this.value)" style="font-size:13px;padding:5px 8px;border:1px solid #cbd5e1;border-radius:6px"></select>
                     <span style="font-size:11.5px;color:#94a3b8">WHO 两代方法温度标准不同（接触测定 25±2℃ / 瓶测定 27±2℃），请按所用方法版本选择</span>
                   </div>
-                  <p style="font-size:12px;color:#64748b;line-height:1.7;margin:10px 0 0">连接 USB 转 RS485 适配器与 Modbus RTU 变送器（8-N-1；默认寄存器映射：0x0000 湿度、0x0001 温度，0.1 倍率），点「连接」后每 5 秒轮询全部探头并实时显示曲线；读数超出阈值自动生成预警，监测读数留存 result/env_*.json（桌面版）。桌面版另支持 TEMPer 系列 USB 温度计直插（HID，免驱动）与 CO₂ / 光照度 / 负压扩展参数变送器（设备类型可选，起始地址与倍率可按说明书修改）。无硬件时可勾选「模拟读数」体验全流程。</p>
-                  <div id="ser-live"></div>
-                  <canvas id="ser-chart" class="act-chart" width="820" height="200"></canvas>
+                  <p style="font-size:12px;color:#64748b;line-height:1.7;margin:10px 0 0">连接 USB 转 RS485 适配器与 Modbus RTU 变送器（8-N-1；默认寄存器映射：0x0000 湿度、0x0001 温度，0.1 倍率），点「连接」后每 5 秒轮询全部探头；实时读数卡片与曲线在「统计分析 → 环境分析」呈现，读数超出阈值自动生成预警，监测读数留存 result/env_*.json（桌面版）。桌面版另支持 TEMPer 系列 USB 温度计直插（HID，免驱动）与 CO₂ / 光照度 / 负压扩展参数变送器（设备类型可选，起始地址与倍率可按说明书修改）。无硬件时可勾选「模拟读数」体验全流程。</p>
                 </div>
               </div>
             </section>
@@ -477,39 +490,53 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
               </div>
               <div class="ptab-pane active" id="anap-surv">
                 <div class="region" id="region-analytics" style="margin-top:12px">
-                  <div class="region-title">统计分析</div>
+                  <div class="region-title">生存分析</div>
                   <div class="filters" style="margin-top:10px">
-                    <span>品系</span>
-                    <select id="ana-strain" onchange="setAna('strain',this.value)">
-                      <option value="all">全部品系</option><option value="S1">白纹伊蚊</option><option value="S2">致倦库蚊</option>
-                    </select>
+                    <span>蚊种</span>
+                    <select id="ana-species" onchange="setAna('species',this.value)"></select>
+                    <span>蚊株</span>
+                    <select id="ana-strain" onchange="setAna('strain',this.value)"></select>
+                    <span>蚊笼</span>
+                    <select id="ana-cage" onchange="setAna('cage',this.value)"></select>
                     <span>时间范围（按蚊笼起始日期）</span>
                     <select id="ana-range" onchange="setAna('range',this.value)">
                       <option value="all">全部</option><option value="90">近 90 天</option><option value="30">近 30 天</option>
                     </select>
                   </div>
+                  <div class="kpis" id="ana-kpis" style="grid-template-columns:repeat(4,1fr);margin-top:12px"></div>
                 </div>
                 <div id="ana-charts"></div>
                 <div id="ana-table"></div>
                 <div class="region" style="margin-top:12px">
-                  <div class="region-title">科研分析（KM 生存曲线 · 生命表）
-                    <button class="mini-btn" data-export="research-surv">导出生存长表 CSV</button>
-                    <button class="mini-btn" data-export="research-life">导出生命表 CSV</button>
-                    <button class="mini-btn" data-export="research-prism">导出 Prism 宽表 CSV</button>
-                  </div>
+                  <div class="region-title">KM 生存曲线 · 生命表</div>
                   <div id="sci-km"></div>
+                  <div id="sci-life"></div>
+                  <div id="sci-cal"></div>
+                  <div id="sci-stage"></div>
+                  <div id="sci-briere"></div>
+                  <div id="sci-yield"></div>
                 </div>
-                <div id="sci-life"></div>
-                <div id="sci-cal"></div>
-                <div id="sci-briere"></div>
-                <div id="sci-yield"></div>
+                <div style="display:flex;gap:8px;margin:14px 0 4px;flex-wrap:wrap">
+                  <button class="mini-btn" data-export="surv-record">导出记录</button>
+                  <button class="mini-btn ghost" onclick="openSurvReport()">导出报告</button>
+                  <button class="mini-btn ghost" data-export="lifetable-tpl">两性生命表模板（insectecol）</button>
+                </div>
               </div>
               <div class="ptab-pane" id="anap-act">
                 <div class="region" style="margin-top:12px">
-                  <div class="region-title">活动分析<span class="tag" style="background:#eff6ff;color:#1d4ed8">来自「硬件接入 → 本地接入」的监测会话</span>
-                    <button class="mini-btn ghost" data-export="research-act">导出昼夜节律 CSV</button>
+                  <div class="region-title">活动分析</div>
+                  <div class="filters" style="margin-top:10px">
+                    <span>蚊种</span>
+                    <select id="act-species" onchange="setAct('species',this.value)"></select>
+                    <span>蚊株</span>
+                    <select id="act-strain" onchange="setAct('strain',this.value)"></select>
+                    <span>蚊笼</span>
+                    <select id="act-cage" onchange="setAct('cage',this.value)"></select>
                   </div>
-                  <div class="kpis" id="act-kpis" style="grid-template-columns:repeat(4,1fr)"></div>
+                  <div class="kpis" id="act-kpis" style="grid-template-columns:repeat(4,1fr);margin-top:12px"></div>
+                </div>
+                <div class="region" style="margin-top:12px">
+                  <div class="region-title">会话曲线</div>
                   <div class="filters" style="margin-top:10px">
                     <span>选择会话</span>
                     <select id="act-sel" onchange="renderActChart()"></select>
@@ -517,25 +544,59 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
                   <canvas id="act-ch1" class="act-chart" width="820" height="190"></canvas>
                   <canvas id="act-ch2" class="act-chart" width="820" height="150"></canvas>
                   <div id="act-detail" style="margin-top:10px"></div>
-                  <div class="region-title" style="font-size:12.5px;margin-top:16px;margin-bottom:8px">昼夜节律（按小时聚合 · 全部会话）</div>
+                  <div class="region-title" style="font-size:12.5px;margin-top:16px;margin-bottom:8px">昼夜节律（按小时聚合 · 按当前筛选）</div>
                   <canvas id="act-circadian" class="act-chart" width="820" height="190"></canvas>
                   <div id="act-cir-note" class="ana-note" style="margin-top:6px"></div>
                 </div>
-                <div class="region">
+                <div class="region" style="margin-top:12px">
                   <div class="region-title">监测会话列表</div>
                   <div id="act-table"></div>
                 </div>
+                <div style="display:flex;gap:8px;margin:12px 0 4px;flex-wrap:wrap">
+                  <button class="mini-btn" data-export="research-act">导出记录</button>
+                  <button class="mini-btn ghost" onclick="openActReport()">导出报告</button>
+                </div>
               </div>
               <div class="ptab-pane" id="anap-env">
+                <div class="region" style="margin-top:12px">
+                  <div class="region-title">环境分析</div>
+                  <div class="filters" style="margin-top:10px">
+                    <span>蚊种</span>
+                    <select id="env-species" onchange="setEnv('species',this.value)"></select>
+                    <span>蚊株</span>
+                    <select id="env-strain" onchange="setEnv('strain',this.value)"></select>
+                    <span>蚊笼</span>
+                    <select id="env-cage" onchange="setEnv('cage',this.value)"></select>
+                  </div>
+                </div>
                 <div id="env-charts"></div>
+                <div class="region" id="region-ser-records" style="margin-top:12px">
+                  <div class="region-title">USB 串口监测读数<span class="tag" style="background:#ecfeff;color:#0e7490">每 5 秒轮询 · 实时曲线</span><button class="goto-btn" data-nav="iot">前往接入</button></div>
+                  <div class="ana-note">连接与探头配置在「硬件 → USB 串口」页签；监测读数留存 result/env_*.json（桌面版）。</div>
+                  <div id="ser-live" style="margin-top:8px"></div>
+                  <canvas id="ser-chart" class="act-chart" width="820" height="200"></canvas>
+                </div>
+                <div style="display:flex;gap:8px;margin:12px 0 4px;flex-wrap:wrap">
+                  <button class="mini-btn" data-export="research-env">导出记录</button>
+                  <button class="mini-btn ghost" onclick="openEnvReport()">导出报告</button>
+                </div>
+              </div>
+            </section>
+            <!-- ================= 抗药性测定（GB/T 26347） ================= -->
+            <section class="page" id="page-assays">
+              <div class="region" id="region-assays" style="margin-top:0">
+                <div class="region-title">抗药性测定（GB/T 26347 生物测定法）
+                  <button class="mini-btn" data-open-modal="new-assay">＋ 新建测定</button>
+                  <button class="mini-btn" data-export="assays">导出测定记录</button>
+                </div>
+                <div class="ana-note">按 GB/T 26347《蚊虫抗药性检测方法 生物测定法》成蚊接触筒法流程组织：试蚊入筒 → 药膜接触 1 小时 → 移入恢复筒 → 24 小时记录死亡率。每筒默认 30 只（可调），对照筒 1 个；保存后自动倒计时，24h 死亡率录入后自动判定（98–100% 敏感 / 90–98% 需确证 / &lt;90% 抗性；对照死亡率 5–20% 按 Abbott 校正，&gt;20% 需重做）。判定口径为通例，正式报告请以标准原文与诊断剂量为准。</div>
+                <div id="assay-list" style="margin-top:10px"></div>
               </div>
             </section>
             <!-- ================= 预警中心 ================= -->
             <section class="page" id="page-alerts">
               <div class="region" id="region-alerts" style="margin-top:0">
-                <div class="region-title">质量预警
-                  <button class="mini-btn" data-export="alerts">导出 CSV</button>
-                </div>
+                <div class="region-title">质量预警</div>
                 <div class="sub-region" style="margin-bottom:12px">
                   <div class="region-title" style="font-size:12.5px;margin-bottom:8px">预警阈值<span class="tag assume">默认值为常用饲养参数，请按本室规程调整</span></div>
                   <div class="th-grid">
@@ -573,22 +634,62 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
                   <div class="region-title" style="font-size:12.5px;margin-bottom:8px">数据与备份</div>
                   <label class="checkline"><input type="checkbox" id="set-backup" checked> 每日关闭前提醒备份数据文件</label>
                   <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
+                    <button class="mini-btn" onclick="backupAllData()">备份所有数据</button>
                     <button class="mini-btn ghost" onclick="importPreset()">导入预设数据</button>
                     <button class="mini-btn danger" id="btn-clear-data" onclick="clearAllData()">删除预设数据</button>
+                    <button class="mini-btn ghost" onclick="exportEln()">导出 .eln 数据包（ELN 互操作）</button>
                   </div>
-                  <div class="ana-note" style="margin-top:6px">软件默认无数据。「导入预设数据」载入内置示例数据（品系、蚊笼、记录与预警），用于快速了解软件功能；「删除预设数据」清空全部品系、蚊笼、记录与预警（两击确认），删除前建议先导出 CSV 备份。</div>
+                  <div class="ana-note" style="margin-top:6px">软件默认无数据。「导入预设数据」载入内置示例数据（品系、蚊笼、记录与预警），用于快速了解软件功能；「删除预设数据」清空全部品系、蚊笼、记录与预警（两击确认），删除前建议先导出 CSV 备份。「备份所有数据」将 data/ 与 result/ 全部复制到安装目录 backup/ 下的时间戳子文件夹（桌面版）；浏览器预览模式则下载 JSON 数据快照。「导出 .eln 数据包」按 .eln（RO-Crate）规范将台账 JSON 与全部 CSV 装箱，可导入 eLabFTW 等 ELN 或长期归档。</div>
                 </div>
+                <div class="sub-region" style="margin-bottom:12px" id="glp-region">
+                  <div class="region-title" style="font-size:12.5px;margin-bottom:8px">操作人与数据完整性（GLP-ready）<span class="tag assume">单机自报 · audit-trail ready</span></div>
+                  <div class="fw" style="max-width:280px"><label>操作人姓名（新记录自动署名）</label><input id="set-operator" placeholder="如 张三" oninput="saveOperator(this.value)"></div>
+                  <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
+                    <button class="mini-btn" onclick="openAuditTrail()">查看审计轨迹</button>
+                    <button class="mini-btn ghost" data-export="audit">导出审计轨迹 CSV</button>
+                  </div>
+                  <div id="alcoa-check" style="margin-top:10px"></div>
+                  <div class="ana-note" style="margin-top:6px">台账只增不改（append-only）：记录一经保存永久保留，以追加说明性备注纠正。单机软件无权限体系，「可归因」为操作者自报层级；对外表述为「GLP 数据完整性友好（audit-trail ready）」，不构成 GLP 认证结论。</div>
+                </div>
+                <div class="ana-note" style="margin:0 0 12px">智能感知（模型管理）已独立为侧栏「模型」页。</div>
+              </div>
+            </section>
+            <!-- ================= 模型（v4.0 智能感知独立页 · 侧栏入口） ================= -->
+            <section class="page" id="page-models">
+              <div class="region" id="cv-region" style="margin-top:0">
+                <div class="region-title">智能感知（实验性）</div>
+                  <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+                    <select id="f-cv-purpose"><option value="demo">演示模型（COCO 通用预训练）</option><option value="domain">蚊虫计数领域模型</option></select>
+                    <button class="mini-btn ghost" id="btn-cv-demo" onclick="onCvDemoModel()">载入内置演示模型</button>
+                    <input type="file" id="f-cv-model" accept=".onnx" onchange="onCvModel(this)" style="font-size:12.5px">
+                    <button class="mini-btn danger" id="btn-cv-unload" onclick="cvUnloadModel()" style="display:none">卸载模型</button>
+                  </div>
+                  <div id="cv-card" style="margin-top:8px"></div>
+                  <div style="margin-top:8px;display:flex;align-items:center;gap:10px;max-width:460px">
+                    <label style="white-space:nowrap">置信度阈值 <b id="cv-conf-val">0.25</b></label>
+                    <input type="range" min="0.05" max="0.9" step="0.05" id="f-cv-conf" value="0.25" oninput="cvConfChange(this.value)" style="flex:1">
+                  </div>
+                  <div class="ana-note" style="margin-top:6px">演示权重已随软件内置，点「载入内置演示模型」即可跑通流程（COCO 通用预训练，不识别蚊虫，仅验证识别流程，计数不可写入台账）；蚊虫计数领域模型不入库不随软件分发：请自行训练 .onnx 权重并在此本地导入、用途选「蚊虫计数领域模型」方可预填计数。推理运行时随软件本地分发（vendor/ort/），全部计算在本机完成，无网络通信。模型与会话仅驻内存，重启软件后需重新载入。仅支持 YOLOv10 系 NMS-free 输出（[1,300,6]）的模型。阈值修改即时生效，仅影响此后识别；阈值低于设定值的检出不计入预填。</div>
               </div>
             </section>
             <!-- ================= 关于 ================= -->
             <section class="page" id="page-about">
               <div class="region" style="margin-top:0">
                 <div class="region-title">关于</div>
-                <p style="font-size:13px;color:#334155;line-height:1.7;margin:0;padding-left:12px"><b>MosqCare 蚊媒饲养工作台</b> · v3.4<br>面向个人 / 小实验室的蚊虫饲养过程管理工具：记录、统计、分析、可视化。单机使用，无账号体系。</p>
-                <div class="region-title" style="font-size:12.5px;margin:14px 0 6px"><b>开发者</b></div>
-                <p style="font-size:12.5px;color:#475569;line-height:1.8;margin:0 0 8px;padding-left:12px">河南大学基础医学院 / 河南大学深圳研究院 郭祥<br>School of Basic Medical Sciences, Henan University / Shenzhen Research Institute, Henan University.</p>
-                <div class="region-title" style="font-size:12.5px;margin:14px 0 6px">更新日志</div>
+                <div style="display:flex;align-items:center;gap:12px;padding-left:12px">
+                  <svg width="40" height="40" aria-hidden="true"><use href="#mc-logo"/></svg>
+                  <p style="font-size:13px;color:#334155;line-height:1.7;margin:0"><b>MosqCare 蚊媒饲养工作台</b> · v4.0<br>面向个人 / 小实验室的蚊虫饲养过程管理工具：记录、统计、分析、可视化。单机使用，无账号体系。</p>
+                </div>
+                <div class="region-title" style="margin:14px 0 6px">开发者</div>
+                <p style="font-size:12.5px;color:#475569;line-height:1.8;margin:0 0 8px;padding-left:12px">河南大学基础医学院 / 河南大学深圳研究院 郭祥<span class="affil-en"><br>School of Basic Medical Sciences, Henan University / Shenzhen Research Institute, Henan University.</span></p>
+                <div class="region-title" style="margin:14px 0 6px">更新日志</div>
                 <ul style="font-size:12.5px;color:#475569;line-height:1.8;margin:0 0 8px 18px">
+                  <li><b>v4.0 · 智能感知三期</b> — 内置演示权重 · 一键载入：① 设置 → 智能感知新增「载入内置演示模型」按钮：载入随软件内置的 COCO 通用预训练权重（model/yolov10n-coco-demo.onnx，FP32，9.0 MB，SHA-256 照常展示于模型卡），无需自行获取 .onnx 即可跑通「载入模型 → 照片计数 → 检出框可视化」完整链路；② 诚实边界不变：演示模型不识别蚊虫，检出框仅验证识别流程，计数不可写入台账、预填入口禁用（既有 banner 明示）；蚊虫计数领域模型（训练后）仍走本地文件导入并声明「蚊虫计数领域模型」用途，方可预填；③ 内置演示权重经独立 spike 页面验证（onnxruntime-web 1.23.2 本地自托管：WebGPU 会话约 0.4s、单次推理约 18–23 ms、YOLOv10 NMS-free 输出 [1,300,6] 解码正常，控制台无错误）；全部文案中英双语。</li>
+                  <li><b>v4.0 · 智能感知二期</b> — LLM 记录辅助（AI 补录草稿 · 粘贴通道）：① 蚊笼详情新增「AI 补录草稿」入口：粘贴任意 AI 助手生成的补录草稿文本 → 本地确定性规则解析（非模型推理；识别日期 / 转入阶段 / 转入数量 / 淘汰 / 备注）→ 结构化预览卡（已识别 ✓ / 未识别 —，附输入字数与识别字段数）→ 一键带入「新增记录（阶段计数）」表单；② 双署名复用：解析结果经人工核对并确认保存后才写入台账，记录带 origin:ai-draft 与 llm 元数据（来源 external-paste、输入字数、识别字段数），时间线沿用「AI 预填 · 人工确认」徽标并追加草稿摘要；照片计数的 cv 元数据可与 llm 元数据并存于同一条记录；③ 诚实边界：解析为本地规则匹配（非模型推理），全部计算在本机完成、无网络通信；字段不足拒绝带入并回退手工表单；识别不到的字段留空不猜测（备注仅认显式引导符）；④ 内置本机模型（tauri-plugin-llama-crab，GGUF 量化，自动生成草稿）为 Tauri 桌面版规划能力，本版未启用（构建需 Rust MSRV 1.88 + MSVC C++ 工具链 + CMake，本机工具链缺失，详见实现计划）；算法独立注册于 script/llm.js（MosqLLM v0.1）；全部新功能中英双语。</li>
+                  <li><b>v4.0</b> — 智能感知一期（CV 照片计数预填）：① CV 推理底座：onnxruntime-web 1.23 运行时随软件本地分发（ui/vendor/ort/，零 CDN、无遥测），WebGPU 优先、wasm 多线程 SIMD 自动回退，全部推理在本机完成、无网络通信；② 模型管理（设置 → 智能感知 · 实验性）：本地 .onnx 模型导入（ArrayBuffer 直建推理会话），模型用途声明（演示模型 COCO 通用预训练 / 蚊虫计数领域模型）、模型卡（文件名 / 大小 / SHA-256 / 输入输出 / 加载耗时）、置信度阈值滑杆（即时生效，阈值以下检出不计入预填）与模型卸载；模型文件不入库不随软件分发，会话仅驻内存，重启后需重新导入（诚实脚注明示）；③ 蚊笼详情新增「照片计数」入口：照片导入（培养皿 / 卵板俯拍为宜）→ 640×640 识别 → 检出框叠加可视化 + 检出数 / 推理耗时读数，照片仅本机识别、不入库不上传；④ AI 预填 · 人工确认（双署名）：仅「蚊虫计数领域模型」可将检出数预填至「新增记录（阶段计数）」表单，数量经人工核对并确认保存后才写入台账，记录带 origin:ai-draft 与模型元数据（SHA-256 前 12 位、阈值、检出数、推理耗时），时间线显示「AI 预填 · 人工确认」徽标；演示模型仅验证流程，明示「计数不可写入台账」并禁用预填入口；当前仅支持 YOLOv10 系 NMS-free 输出（[1,300,6]）的模型；算法独立注册于 script/cv.js（MosqCV v0.1）；全部新功能中英双语。</li>
+                  <li><b>v3.7</b> — 生产质量控制：① SIT QC 记录套件（可选记录项）：蚊笼详情新增「QC 记录」入口，三类可选 QC 项目写入台账并在时间线呈现（「分 / 辐 / 飞」条目）——性分离（分选方法、雄虫数、混入雌虫数；自动计算雌污染率与回收率）、辐照（辐照源 Co-60 γ / X 射线 / 电子束、标称剂量、剂量校验、辐照批次号）、飞行测试（测试个体数、24h 飞出数；自动计算 FAI 飞行能力指数，FAO 飞行测试圆筒口径）；蚊笼详情新增「生产质量指标」卡：羽化率（成虫 ÷ 蛹，口径与统计页一致）与三类 QC 最近值，附诚实脚注（可选记录项，未记录不代表未达标）；QC 记录并入蚊笼管理记录 CSV，并可单独导出「SIT QC 记录」CSV（含自动计算的派生指标）；② 翅长测量辅助（照片半自动测量）：蚊笼详情新增「翅长测量」入口——翅照片导入后按「① 标尺起点 → ② 标尺终点 → ③ 翅基 → ④ 翅尖」四点点击完成半自动测量，可选两点标尺标定（px/mm）后自动换算翅长（mm），未标定仅记录像素距离并如实标注；测量记录按蚊笼保存、列表管理与删除（两击确认），支持 CSV 导出（像素 / 标定 / 翅长 / 标定状态 / 操作人 / 创建时间戳），照片不入库（仅保存测量结果，避免数据膨胀）；③ 阶段特异热常数与密度因子（探索）：生存分析新增「阶段特异热常数与密度因子」卡——按 stage 记录切分各阶段日期区间，结合实测温度汇总平均历期与平均温（n≥3 阶段呈现），估算阶段热常数 K = 历期 ×（均温 − T₀）（T₀ 优先本地校准、退回文献值，附「不可跨品系外插」脚注）；密度因子以起始卵量为近似，给出密度 vs 卵→成虫历期 / 累积存活率的 Pearson r（n≥5，|r|&lt;0.3 标弱，相关性探索非因果）；算法独立注册于 algo/stagek.v0.1.js（MosqStageK）；④ 侧栏「抗药性测定」更名为「抗药测定」（页面内名称与 GB/T 26347 标准引用不变）；全部新功能中英双语。</li>
+                  <li><b>v3.6</b> — 合规与互操作：① 发育历期基准表：蚊笼详情新增「发育历期基准」卡，按品系拉丁名给出卵 / L1–L4 / 蛹各阶段参考历期区间（26±1℃ 文献通值）与本笼实际历期对比（基准内 / 偏快 / 偏慢标注），当前阶段超参考上限自动生成「历期异常」预警，与 GDD 偏差预警互补，附诚实脚注（株间与温度差异）；② 血饲供体字段：饲喂记录选「血饲」时展开供体信息（供体类型：活体动物-麻醉 / 束缚 / 镇静、人工膜血饲、离体抗凝血；供体编号；伦理批号），写入台账并在时间线与管理记录 CSV 中呈现；③ 蚊株 / 蚊笼标签打印：纯前端零依赖 QR 编码器（script/qr.js），「蚊笼管理」按当前筛选批量生成或单笼生成标签（QR 载荷 MosqCare|笼号|世代 + 笼号大字 + 品系与世代 + 起始日期），A4 3×6 打印版式，打印预览仅显示标签页；④ 抗药性测定（新页签，GB/T 26347 生物测定法）：按成蚊接触筒法流程组织——新建测定（来源蚊笼、药剂与浓度、处理筒 1–4、每筒默认 30 只、对照筒自动生成、接触开始时间）后自动倒计时（接触 1h、24h 判定期），各筒死亡率内联录入，24h 死亡率自动判定（98–100% 敏感 / 90–98% 需确证 / &lt;90% 抗性；对照死亡率 5–20% 按 Abbott 校正、&gt;20% 提示重做），到期未录入自动生成「测定待判」提醒，测定记录一键导出 CSV；⑤ 两性生命表模板导出：生存分析导出行新增「两性生命表模板」，生成符合 R 包 insectecol lifeTable_read() 输入规范的个体日记录 CSV（ID + 各阶段经历天数 + 成虫存活天数 + gender + 逐日产卵列，含示例行），说明笼级台账与个体日记录的方法学边界；⑥ .eln 导出：设置→数据与备份新增「导出 .eln 数据包」，零依赖 ZIP 装箱（script/zip.js）——ro-crate-metadata.json（RO-Crate 1.1 描述）+ 台账原始 JSON + 全部 CSV 导出 + 双语 README，可直接导入 eLabFTW 等 ELN 或长期归档；⑦ GLP 数据完整性层（GLP-ready）：设置新增「操作人与数据完整性」区——操作人姓名设置后新记录自动署名（by）并附创建时间戳（cat），审计轨迹查看器（全台账 who / when / what 倒序表）与审计轨迹 CSV 导出，ALCOA+ 九项自检清单自动评估（可归因 / 清晰 / 同步 / 原始 / 准确 / 完整 / 一致 / 持久 / 可获得），明示单机自报边界与「audit-trail ready」表述；全部新功能中英双语。</li>
+                  <li><b>v3.5</b> — 界面精修：① 全局去除「科研分析」前缀，功能区直接命名（如「KM 生存曲线 · 生命表」「Brière 发育速率拟合」），预警提示与脚注的指路文案同步改为「统计分析 → KM 生存曲线」「统计页签」等表述（历史更新日志条目保留原文）；② 生存分析 / 活动分析 / 环境分析三个页签新增「蚊种 → 蚊株 → 蚊笼」级联筛选：选项由实时数据生成（不从示例数据硬编码），上级选「全部」时下级列全，蚊笼选项显示「笼号 · 品系名 世代」，可按单笼定位分析；生存页单笼筛选时给出「单笼模式」提示（log-rank 与池化对比不适用），活动 / 环境页的 KPI、会话下拉、会话列表、昼夜节律图与环境图表全部按筛选结果计算；③ 生存分析界面重组：顶部筛选条 → 关键指标行（已结束蚊笼 / 覆盖世代 / 覆盖蚊种 / 累计羽化成虫）→「KM 生存曲线 · 生命表」主区（KM 曲线 + log-rank 注记 + 三个导出按钮、池化生命表 + R₀/T/rₘ/λ/DT 参数卡、预测参数校准、Brière 拟合、羽化产量区间依次以子卡片呈现，KM 图加高至 320px 并完善坐标轴与图例），CSV 导出格式与算法不变；④ 全新品牌标识：侧边栏、顶栏、关于页与浏览器 favicon 更换为「纯色徽章 + 蚊虫侧影」Logo（#333D7A 单色圆角徽章，白色蚊虫侧面剪影：口器、触角、翅与足等特征清晰可辨），Windows 应用图标（ico）同步重制；⑤ 关于页修正：英文模式下开发者单位信息不再重复两次（中文模式保持中英两行），关于 / 开发者 / 更新日志同级标题字重与字号统一。</li>
                   <li><b>v3.4</b> — 感知扩展：① TEMPer USB 温度计直插（HID）：桌面版经自研纯 Rust HID 命令枚举 / 读取 PCsensor TEMPer 家族设备（免驱动、零 C 编译依赖），接入方式新增「USB 直插（HID）」，与 RS485 总线并存，读数同样进入实时曲线、阈值预警与 result/env_*.json 留存；② Modbus 扩展参数设备：探头类型由温湿度扩展为四类（温湿度 / CO₂ / 光照度 / 负压），寄存器起始地址与倍率可按设备说明书修改，CO₂ 超阈值自动生成预警；③ 继电器联动建议条：温度 / 湿度 / CO₂ 偏离阈值时在监测卡片区内联给出风扇降温、加热保温、加湿、通风除湿、通风换气建议（连续两轮命中同一组合才显示；仅作页内建议，不下发任何控制指令，不进预警中心）；④ 科研分析新增「Brière 发育速率拟合」：复用发育校准样本拟合非线性发育速率曲线 r(T) = c·T·(T−T₀)·(T_L−T)^0.5（对 (T₀, T_L) 做 0.5℃ 网格搜索、c 取过原点最小二乘解析解），与同样本线性积温回归 r² 对比呈现，样本 <4 个或温度跨度 <5℃ 时诚实拒绝拟合，r²<0.5 标记拟合较弱；算法独立注册为 briere v0.1（script/algo/briere.v0.1.js）。</li>
                   <li><b>v3.3</b> — 饲养结果预测（积温模型 GDD）：新增发育预测模块（算法独立注册为 forecast v0.1，script/algo/forecast.v0.1.js）——① 蚊笼详情新增「发育预测」卡：线性积温模型（GDD = Σ max(0, T̄日 − T₀)，超过上限发育温度按上限截断）逐日累计笼环境温度有效积温，内置文献热常数按品系拉丁名自动匹配（埃及伊蚊 T₀=8.3℃/K=181.2 日·度、白纹伊蚊幼虫期 K=105.26 + 卵/蛹期假设补偿、斯氏按蚊 K=187.7/上限 38℃ 截断、尖音库蚊复合群雌雄均值），给出预计羽化日倒计时、积温轨道进度与实际阶段进度双轨对比；环境记录缺失日顺延前值、连续缺失超 3 天或无记录按 26℃ 假设计入并标注覆盖率；② 发育偏差预警：积温轨道进度与实际阶段推进（卵→成虫六级序）偏差超阈值自动生成预警（临近羽化 / 超前 / 迟缓，分提示与警告两级），并给出温度、密度、饲料、水质排查建议；③ 科研分析（生存分析页签）新增「预测参数校准」：同品系已结束蚊笼 1/D × 平均温度线性回归（发育起点 T₀ 与有效积温 K），有效样本 ≥6 笼启用本地校准并覆盖文献默认值，界面明示文献值/校准值来源；「羽化产量区间」：同品系已结束笼累积存活率 P10/P50/P90 分位 × 在养笼起始卵量的产量区间估计，样本 ≥10 批次才显示；④ 全部预测附带诚实脚注：相关性非因果预测、基于笼环境温度（幼虫实际受水温驱动）、文献热常数存在株间差异（±20–30%）、未纳入密度/饲料/水质等因子。</li>
                   <li><b>补完 v3.1 既定计划</b> — USB 串口环境监测升级为多探头：同一 RS485 总线手拉手接入多台变送器（各自设置不同从站地址），「探头列表」登记后每 5 秒按从站地址顺序轮询全部探头（RS485 半双工 Promise 链不可并发），探头列表本地记忆；新增多探头实时温湿度曲线（最近 12 分钟窗口，左轴温度自适应 + 阈值带、右轴湿度 0–100%，实线温度 / 虚线湿度，各探头配色区分）；新增标准限值模板一键套用（常规饲养 / WHO 成蚊接触测定 25±2℃·80±10%RH / WHO 瓶测定 27±2℃ / IAEA 伊蚊规模化饲养 26±1℃·70±5%RH，套用后可在预警阈值中微调）；新增血饲-产卵日历提醒（FAO/IAEA：血饲后约 3 天产卵，按最近一次血饲记录自动推算预计产卵日并生成提示级预警，收集到子笼后自动关闭）；预警中心支持「提示」级样式。</li>
@@ -637,10 +738,16 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
               <div class="fgrid">
                 <div class="fw"><label>日期 <span class="req">*</span></label><input type="date" id="f-feed-d" value="2026-11-05"><span class="err" id="e-feed-d"></span></div>
                 <div class="fw"><label>时间</label><input type="time" id="f-feed-tm" value="08:00"></div>
-                <div class="fw"><label>类型 <span class="req">*</span></label><select id="f-feed-type"><option value="糖水">糖水</option><option value="幼虫饲料">幼虫饲料</option><option value="血饲">血饲</option></select></div>
+                <div class="fw"><label>类型 <span class="req">*</span></label><select id="f-feed-type" onchange="onFeedType()"><option value="糖水">糖水</option><option value="幼虫饲料">幼虫饲料</option><option value="血饲">血饲</option></select></div>
                 <div class="fw"><label>规格 <span class="req">*</span></label><input id="f-feed-spec" placeholder="例：10% 蔗糖 / 磨碎鱼饲料 0.5g / 小鼠麻醉血饲"><span class="err" id="e-feed-spec"></span></div>
                 <div class="fw"><label>方式</label><select id="f-feed-way"><option value="棉球更换">棉球更换</option><option value="撒喂">撒喂</option><option value="人工膜">人工膜</option><option value="其他">其他</option></select></div>
                 <div class="fw full"><label>备注</label><input id="f-feed-note" placeholder="选填"></div>
+              </div>
+              <div class="fgrid" id="feed-blood-fields" style="display:none;margin-top:2px;padding-top:8px;border-top:1px dashed #e2e8f0">
+                <div class="fw full" style="font-size:12px;color:#1d4ed8;font-weight:600">血饲供体信息（GLP 记录）</div>
+                <div class="fw"><label>供体类型</label><select id="f-feed-bfsource"><option value="">— 请选择 —</option><option value="活体动物-麻醉">活体动物-麻醉</option><option value="活体动物-束缚">活体动物-束缚</option><option value="活体动物-镇静">活体动物-镇静</option><option value="人工膜血饲">人工膜血饲</option><option value="离体抗凝血">离体抗凝血</option></select></div>
+                <div class="fw"><label>供体编号</label><input id="f-feed-bfdonor" placeholder="如 ICR-M-03 / 膜饲-批次2"></div>
+                <div class="fw"><label>伦理批号</label><input id="f-feed-bfethics" placeholder="如 IACUC-2026-018"></div>
               </div>
               <div class="m-foot"><button type="button" class="btn ghost" data-close-modal>取消</button><button type="submit" class="btn primary">保存记录</button></div>
             </form>
@@ -668,11 +775,6 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
               <div class="m-foot"><button type="button" class="btn ghost" data-close-modal>取消</button><button type="submit" class="btn primary">保存记录</button></div>
             </form>
           </div>
-          <!-- 统计分析弹窗 -->
-          <div class="modal" id="modal-ana-extra" style="width:680px">
-            <div class="m-title"><span id="ax-title">产能报表</span><button class="m-close" data-close-modal title="关闭">×</button></div>
-            <div id="ax-body" style="max-height:62vh;overflow:auto"></div>
-          </div>
           <!-- 新增品系模态 -->
           <div class="modal" id="modal-new-strain">
             <div class="m-title">新增品系<button class="m-close" data-close-modal title="关闭">×</button></div>
@@ -685,7 +787,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
                 <div class="fw"><label>来源</label><input id="f-ns-source" placeholder="如 本室驯化 / 野外采集"></div>
                 <div class="fw full"><label>备注</label><input id="f-ns-note" placeholder="如 敏感品系，实验对照用"></div>
               </div>
-              <div class="m-note">保存后可在品系档案点击卡片查看代系关系与关联蚊笼；新建蚊笼时的品系下拉将同步更新。</div>
+              <div class="m-note">保存后可在蚊株档案点击卡片查看代系关系与关联蚊笼；新建蚊笼时的品系下拉将同步更新。</div>
               <div class="m-foot"><button type="button" class="btn ghost" data-close-modal>取消</button><button type="submit" class="btn primary">保存品系</button></div>
             </form>
           </div>
@@ -730,9 +832,9 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
             <div class="m-title">单页饲养报告<span class="tag" id="rp-batch"></span><span style="margin-left:auto;display:flex;gap:6px;align-items:center"><button class="mini-btn" onclick="printReport()">打印 / 导出 PDF</button><button class="m-close" data-close-modal title="关闭">×</button></span></div>
             <div class="rp-sheet" id="rp-sheet"></div>
           </div>
-          <!-- 品系档案模态 -->
+          <!-- 蚊株档案模态 -->
           <div class="modal" id="modal-strain" style="width:560px">
-            <div class="m-title">品系档案<button class="m-close" data-close-modal title="关闭">×</button></div>
+            <div class="m-title">蚊株档案<button class="m-close" data-close-modal title="关闭">×</button></div>
             <div id="strain-detail"></div>
           </div>
           <!-- 摄像头画面模态 -->
@@ -772,6 +874,146 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
             </div>
             <div class="m-foot"><button type="button" class="btn ghost" data-close-modal>取消</button><button type="button" class="btn primary" id="im-ok" onclick="doImport()" disabled>确认导入</button></div>
           </div>
+          <!-- v3.6 标签打印模态 -->
+          <div class="modal" id="modal-label" style="width:760px">
+            <div class="m-title"><span>打印标签（QR · GB/T 兼容笼位标识）</span><button class="m-close" data-close-modal title="关闭">×</button></div>
+            <div style="padding:2px 0">
+              <div id="label-sheet" class="label-sheet"></div>
+              <div class="ana-note" style="margin-top:8px">每张标签含 QR 码（载荷：MosqCare|笼号|世代，扫码即得关键标识）、笼号、品系与世代、起始日期。建议热敏不干胶或 A4 不干胶纸打印后剪裁贴笼；浏览器「打印」对话框中选择目标打印机即可。</div>
+            </div>
+            <div class="m-foot"><button type="button" class="btn ghost" data-close-modal>关闭</button><button type="button" class="btn primary" onclick="printLabels()">打印</button></div>
+          </div>
+          <!-- v3.6 新建测定模态 -->
+          <div class="modal" id="modal-new-assay" style="width:520px">
+            <div class="m-title"><span>新建抗药性测定（GB/T 26347）</span><button class="m-close" data-close-modal title="关闭">×</button></div>
+            <form onsubmit="return submitNewAssay(event)">
+              <div class="fgrid">
+                <div class="fw"><label>日期 <span class="req">*</span></label><input type="date" id="f-assay-d" value="2026-11-05"><span class="err" id="e-assay-d"></span></div>
+                <div class="fw"><label>来源蚊笼 <span class="req">*</span></label><select id="f-assay-cage"></select><span class="err" id="e-assay-cage"></span></div>
+                <div class="fw"><label>药剂名称 <span class="req">*</span></label><input id="f-assay-ins" placeholder="如 溴氰菊酯 0.05%"><span class="err" id="e-assay-ins"></span></div>
+                <div class="fw"><label>浓度 / 剂量</label><input id="f-assay-conc" placeholder="如 0.05% / 15 mg/m²（诊断剂量）"></div>
+                <div class="fw"><label>处理筒数</label><select id="f-assay-nt"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option></select></div>
+                <div class="fw"><label>每筒试蚊数</label><input type="number" id="f-assay-n" value="30" min="1"><span class="err" id="e-assay-n"></span></div>
+                <div class="fw"><label>接触开始时间 <span class="req">*</span></label><input type="time" id="f-assay-start" value="10:00"><span class="err" id="e-assay-start"></span></div>
+                <div class="fw full"><label>备注</label><input id="f-assay-note" placeholder="选填：药膜批号、温湿度等"></div>
+              </div>
+              <div class="m-note">将自动建 1 个对照筒（同规格、无药膜）。接触 1h 后移入恢复筒，24h 后录入死亡率自动判定。</div>
+              <div class="m-foot"><button type="button" class="btn ghost" data-close-modal>取消</button><button type="submit" class="btn primary">开始测定（启动倒计时）</button></div>
+            </form>
+          </div>
+          <!-- v3.6 审计轨迹模态 -->
+          <div class="modal" id="modal-audit" style="width:860px">
+            <div class="m-title"><span>审计轨迹（append-only 台账）</span><button class="m-close" data-close-modal title="关闭">×</button></div>
+            <div style="padding:2px 0">
+              <div class="ana-note" style="margin:0 0 8px">台账只增不改：以下为全部记录的创建信息（新记录含操作人与创建时间戳；早期记录未含创建时间戳以「—」标示）。记录本体不可编辑，纠错以追加说明性备注实现。</div>
+              <div style="max-height:52vh;overflow:auto" id="audit-body"></div>
+            </div>
+            <div class="m-foot"><button type="button" class="btn ghost" data-close-modal>关闭</button><button type="button" class="btn ghost" data-export="audit">导出审计轨迹 CSV</button></div>
+          </div>
+          <!-- v3.7 QC 记录模态（SIT 生产质量控制 · 可选记录项） -->
+          <div class="modal" id="modal-qc" style="width:560px">
+            <div class="m-title"><span>QC 记录（SIT 生产质量控制 · 可选记录项）</span><button class="m-close" data-close-modal title="关闭">×</button></div>
+            <form onsubmit="return submitQc(event)">
+              <div class="fgrid">
+                <div class="fw"><label>QC 项目 <span class="req">*</span></label><select id="f-qc-type" onchange="onQcType()">
+                  <option value="性分离">性分离</option>
+                  <option value="辐照">辐照</option>
+                  <option value="飞行测试">飞行测试</option>
+                </select></div>
+                <div class="fw"><label>日期 <span class="req">*</span></label><input type="date" id="f-qc-d"><span class="err" id="e-qc-d"></span></div>
+              </div>
+              <div id="qc-fields-sex">
+                <div class="fgrid" style="margin-top:10px">
+                  <div class="fw"><label>分选方法</label><select id="f-qc-sex-method"><option value="人工筛选">人工筛选</option><option value="翻斗分离器">翻斗分离器</option><option value="遗传品系">遗传品系</option><option value="机械分离">机械分离</option><option value="其他">其他</option></select></div>
+                  <div class="fw"><label>雄虫数（只）<span class="req">*</span></label><input type="number" id="f-qc-male" min="0"><span class="err" id="e-qc-male"></span></div>
+                  <div class="fw"><label>混入雌虫数（只）</label><input type="number" id="f-qc-female" min="0" value="0"><span class="err" id="e-qc-female"></span></div>
+                </div>
+                <div class="m-note">保存后自动计算：分选总数 = 雄 + 雌；雌污染率 = 雌 ÷ 分选总数；回收率 = 分选总数 ÷ 当前笼内数量。</div>
+              </div>
+              <div id="qc-fields-irr" style="display:none">
+                <div class="fgrid" style="margin-top:10px">
+                  <div class="fw"><label>辐照源</label><select id="f-qc-irr-source"><option value="Co-60 γ 射线">Co-60 γ 射线</option><option value="X 射线">X 射线</option><option value="电子束">电子束</option></select></div>
+                  <div class="fw"><label>标称剂量（Gy）<span class="req">*</span></label><input type="number" id="f-qc-dose" min="0" step="0.1"><span class="err" id="e-qc-dose"></span></div>
+                  <div class="fw"><label>剂量校验（Gy）</label><input type="number" id="f-qc-dosechk" min="0" step="0.1" placeholder="选填：剂量计实测"></div>
+                  <div class="fw"><label>辐照批次号</label><input id="f-qc-lot" placeholder="选填"></div>
+                </div>
+              </div>
+              <div id="qc-fields-flight" style="display:none">
+                <div class="fgrid" style="margin-top:10px">
+                  <div class="fw"><label>测试个体数（只）<span class="req">*</span></label><input type="number" id="f-qc-tested" min="1"><span class="err" id="e-qc-tested"></span></div>
+                  <div class="fw"><label>24h 飞出数（只）<span class="req">*</span></label><input type="number" id="f-qc-flew" min="0"><span class="err" id="e-qc-flew"></span></div>
+                </div>
+                <div class="m-note">保存后自动计算飞行能力指数 FAI = 飞出数 ÷ 测试数（FAO 飞行测试圆筒口径：装筒后 24h 计飞出个体）。</div>
+              </div>
+              <div class="fw" style="margin-top:10px"><label>备注</label><input id="f-qc-note" placeholder="选填"></div>
+              <div class="m-foot"><button type="button" class="btn ghost" data-close-modal>取消</button><button type="submit" class="btn primary">保存 QC 记录</button></div>
+            </form>
+          </div>
+          <!-- v3.7 翅长测量模态（照片半自动测量 · 照片不入库） -->
+          <div class="modal" id="modal-wing" style="width:900px">
+            <div class="m-title"><span>翅长测量（照片半自动测量）</span><button class="m-close" data-close-modal title="关闭">×</button></div>
+            <div style="display:flex;gap:14px;flex-wrap:wrap">
+              <div style="flex:1 1 520px;min-width:0">
+                <input type="file" id="f-wing-img" accept="image/*" onchange="onWingImage(this)" style="font-size:12.5px;width:100%">
+                <canvas id="wing-canvas" width="640" height="420" style="width:100%;max-width:640px;margin-top:8px;border:1px solid #cbd5e1;border-radius:8px;background:#f8fafc;cursor:crosshair"></canvas>
+                <div id="wing-hint" class="ana-note" style="margin-top:6px">未加载图像：点击上方按钮导入翅照片（建议画面内带标尺或已知长度参照物）。加载后依次点击：① 标尺起点 → ② 标尺终点 → ③ 翅基 → ④ 翅尖。</div>
+                <div style="display:flex;gap:8px;margin-top:6px;flex-wrap:wrap;align-items:center">
+                  <button type="button" class="mini-btn ghost" onclick="wingResetCal()">重置标尺</button>
+                  <button type="button" class="mini-btn ghost" onclick="wingResetWing()">重置翅点</button>
+                  <button type="button" class="mini-btn ghost" onclick="wingClearImage()">清除图像</button>
+                  <span id="wing-readout" style="font-size:12.5px;color:#0f172a;font-weight:600"></span>
+                </div>
+                <div class="fgrid" style="margin-top:8px">
+                  <div class="fw"><label>标尺实际长度（mm）</label><input type="number" id="f-wing-scalemm" min="0" step="0.1" placeholder="选填：如 2.0" oninput="wingRecal()"><span class="err" id="e-wing-scalemm"></span></div>
+                  <div class="fw"><label>标定（px/mm）</label><input id="f-wing-cal" readonly placeholder="点完标尺两点并填实际长度后自动得出"></div>
+                </div>
+              </div>
+              <div style="flex:1 1 300px;min-width:280px">
+                <div class="fgrid">
+                  <div class="fw"><label>关联蚊笼 <span class="req">*</span></label><select id="f-wing-cage" onchange="renderWingList()"></select></div>
+                  <div class="fw"><label>测量日期 <span class="req">*</span></label><input type="date" id="f-wing-d"><span class="err" id="e-wing-d"></span></div>
+                  <div class="fw"><label>样本号</label><input id="f-wing-sid" placeholder="选填：个体 / 管号"></div>
+                  <div class="fw"><label>侧向</label><select id="f-wing-side"><option value="左">左</option><option value="右">右</option><option value="未注明">未注明</option></select></div>
+                  <div class="fw"><label>像素距离（px）</label><input id="f-wing-px" readonly></div>
+                  <div class="fw"><label>翅长（mm）</label><input id="f-wing-mm" readonly placeholder="标定后自动得出"></div>
+                  <div class="fw full" style="grid-column:1/-1"><label>备注</label><input id="f-wing-note" placeholder="选填：拍摄条件、影像文件名等（照片不入库，仅保存测量结果）"></div>
+                </div>
+                <div class="m-foot" style="margin-top:8px;justify-content:flex-start"><button type="button" class="btn primary" onclick="submitWing()">保存测量</button><button type="button" class="btn ghost" data-close-modal>关闭</button><button type="button" class="mini-btn ghost" data-export="wings">导出翅长测量 CSV</button></div>
+                <div id="wing-list" style="max-height:28vh;overflow:auto;margin-top:4px"></div>
+              </div>
+            </div>
+          </div>
+          <!-- v4.0 照片计数模态（智能感知 · 实验性 · AI 预填须人工确认） -->
+          <div class="modal" id="modal-cv" style="width:720px">
+            <div class="m-title"><span>照片计数（智能感知 · 实验性）</span><button class="m-close" data-close-modal title="关闭">×</button></div>
+            <div id="cv-model-hint" class="ana-note" style="margin:2px 0 8px"></div>
+            <input type="file" id="f-cv-img" accept="image/*" onchange="onCvImage(this)" style="font-size:12.5px;width:100%">
+            <canvas id="cv-canvas" width="640" height="640" style="width:100%;max-width:640px;margin-top:8px;border:1px solid #cbd5e1;border-radius:8px;background:#f8fafc"></canvas>
+            <div id="cv-hint" class="ana-note" style="margin-top:6px">未加载图像：点击上方按钮导入照片（培养皿 / 卵板俯拍为宜）。图像仅在本机识别，不入库不上传。</div>
+            <div style="display:flex;gap:8px;margin-top:6px;flex-wrap:wrap;align-items:center">
+              <button type="button" class="mini-btn" id="btn-cv-run" onclick="runCvDetect()">开始识别</button>
+              <button type="button" class="mini-btn ghost" onclick="cvClearImage()">清除照片</button>
+              <span id="cv-readout" style="font-size:12.5px;color:#0f172a;font-weight:600"></span>
+            </div>
+            <div id="cv-demo-banner" style="display:none;margin-top:8px;padding:8px 10px;border:1px solid #f59e0b;background:#fffbeb;border-radius:8px;font-size:12.5px;color:#92400e"></div>
+            <div id="cv-prefill" style="display:none;margin-top:8px">
+              <button type="button" class="btn primary" onclick="cvPrefill()">预填阶段计数（人工确认后入账）</button>
+            </div>
+            <div class="ana-note" style="margin-top:8px">诚实边界：仅「蚊虫计数领域模型」可预填计数；AI 输出只是草稿，数量经人工核对并确认后才写入台账（记录标注「AI 预填 · 人工确认」）。当前仅支持 YOLOv10 系 NMS-free 输出（[1,300,6]）的模型。</div>
+          </div>
+          <!-- v4.0 智能感知二期：AI 补录草稿模态（粘贴通道 · 本地规则解析 · AI 输出只是草稿） -->
+          <div class="modal" id="modal-llm" style="width:640px">
+            <div class="m-title"><span>AI 补录草稿（智能感知 · 实验性）</span><button class="m-close" data-close-modal title="关闭">×</button></div>
+            <div id="llm-model-hint" class="ana-note" style="margin:2px 0 8px"></div>
+            <textarea id="f-llm-text" rows="6" placeholder="粘贴 AI 助手生成的补录草稿文本，例如：11月10日将 3 龄幼虫转入 4 龄 350 只，淘汰 12 只，备注：水质良好" style="width:100%;font-size:12.5px;line-height:1.6;padding:8px;border:1px solid #cbd5e1;border-radius:8px;resize:vertical;box-sizing:border-box"></textarea>
+            <div style="display:flex;gap:8px;margin-top:8px;align-items:center">
+              <button type="button" class="mini-btn" id="llm-parse-btn" onclick="onLlmParse()">解析草稿</button>
+              <button type="button" class="mini-btn ghost" onclick="llmClearParse()">清除</button>
+              <span id="llm-readout" style="font-size:12.5px;color:#0f172a;font-weight:600"></span>
+            </div>
+            <div id="llm-preview" style="display:none;margin-top:8px"></div>
+            <div class="ana-note" style="margin-top:8px">诚实边界：草稿文本可来自任何 AI 助手；解析为本地规则匹配（非模型推理），全部计算在本机完成、无网络通信。解析结果只是草稿：须人工核对并确认保存后才写入台账（记录标注「AI 预填 · 人工确认」）；识别不到的字段请手工填写，字段不足时无法带入。内置本机模型（自动生成草稿）为 Tauri 桌面版规划能力，本版未启用。</div>
+          </div>
         </div>
         <div class="toast" id="toast"></div>
       </div>
@@ -787,7 +1029,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
     <div class="doc-body doc" id="doc-body">
       <div class="doc-meta">
         <b>MosqCare · 蚊媒饲养工作台 产品需求文档（交互式）</b><br>
-        版本 v3.4 · 2026-11-10<br>
+        版本 v4.0 · 2026-11-12<br>
         定位：个人 / 小实验室<b>单机使用</b>的蚊虫饲养过程管理工具，覆盖记录、统计、分析与可视化。<br>
         阅读方式：默认呈现为可交互的软件预览（全屏原型）；本需求文档内容保留于文件内，供评审时查阅。
       </div>
@@ -814,7 +1056,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
         <table>
           <tr><th style="width:52px">编号</th><th style="width:150px">能力</th><th>说明</th></tr>
           <tr><td>F1</td><td>工作台总览</td><td>无独立概览区：图形化蚊笼卡片 + 关键指标，预警直接标注在蚊笼卡片上</td></tr>
-          <tr><td>F2</td><td>品系档案与蚊笼管理</td><td>品系档案（左侧栏独立栏目）、蚊笼列表与筛选、新建蚊笼（建笼即建账）</td></tr>
+          <tr><td>F2</td><td>蚊株档案与蚊笼管理</td><td>蚊株档案（左侧栏独立栏目）、蚊笼列表与筛选、新建蚊笼（建笼即建账）</td></tr>
           <tr><td>F3</td><td>蚊笼详情与时间线</td><td>生命周期进度、存活 / 历期指标、全部记录按时间倒序呈现</td></tr>
           <tr><td>F4</td><td>日常记录录入</td><td>阶段计数 / 饲喂 / 环境 / 实验处理四类表单，含校验与自动预警触发</td></tr>
           <tr><td>F5</td><td>记录台账</td><td>记录只增不改，时间线完整可追溯，支持导出记录单</td></tr>
@@ -827,7 +1069,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
           <tr><td>F12</td><td>IoT 接入</td><td>温湿度传感器自动采集、摄像头实时画面与快照、插座开关远程控制；内置米家连接器（小米账号登录直连，无需自建 Home Assistant），各区域附接入指南</td></tr>
         </table>
         <h3>P1 与非目标</h3>
-        <p><b>P1（下一迭代候选）：</b>蚊笼标签打印、发育历期基准、血饲供体字段扩展、Windows 桌面安装包。CSV 导入 / 导出已内置于品系档案与蚊笼列表（导出另覆盖统计分析 / 预警中心），不设独立「数据导出」入口。</p>
+        <p><b>P1（下一迭代候选）：</b>蚊笼标签打印、发育历期基准、血饲供体字段扩展、Windows 桌面安装包。CSV 导入 / 导出已内置于蚊株档案与蚊笼列表（导出另覆盖统计分析 / 预警中心），不设独立「数据导出」入口。</p>
         <p><b>非目标（明确不做）：</b>多用户账号与权限体系、云同步、试剂耗材库存管理。温湿度仪器自动采集已随 F12「IoT 接入」从非目标转为正式功能（内置米家连接器直连）；环境记录保留来源字段区分手动 / 自动。</p>
         <h3>假设与待定</h3>
         <ul>
@@ -893,21 +1135,21 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
           </ul>
         </section>
         <section class="feat-section" id="feature-strain-batch" data-embed="page-batches">
-          <div class="feat-head"><span class="fid">F2</span><h3>品系档案与蚊笼管理</h3><button class="goto-btn" data-goto="batches" data-region="region-batches">在原型中定位</button></div>
-          <p><b>目的：</b>建立「品系 → 蚊笼」两级台账，建笼即建账。品系档案为左侧栏独立栏目；「蚊笼管理」页仅保留蚊笼列表。</p>
-          <h4>品系档案</h4>
+          <div class="feat-head"><span class="fid">F2</span><h3>蚊株档案与蚊笼管理</h3><button class="goto-btn" data-goto="batches" data-region="region-batches">在原型中定位</button></div>
+          <p><b>目的：</b>建立「品系 → 蚊笼」两级台账，建笼即建账。蚊株档案为左侧栏独立栏目；「蚊笼管理」页仅保留蚊笼列表。</p>
+          <h4>蚊株档案</h4>
           <p>卡片展示编号、种名 / 拉丁名、来源、在养蚊笼数与历史世代数。点击品系卡片可打开代系详情：<b>代系关系</b>以树状呈现（按亲代蚊笼逐层展开，一个蚊笼可扩繁出多个子代蚊笼，节点显示笼号 / 世代 / 阶段 / 数量 / 存活率，在养节点高亮，点击节点进入蚊笼详情）与<b>关联蚊笼</b>（该蚊株全部蚊笼列表）。<b>物种与蚊株信息可编辑</b>：弹窗内「编辑信息」可修改名称、蚊株、蚊株缩写、物种（拉丁名）、来源与备注，保存后即时生效。<b>蚊株缩写</b>用作该株新建蚊笼的笼号前缀（如佛山株缩写 FS，新笼自动编为 FS-01、FS-02…；缩写为空时以 C 前缀），品系卡片与弹窗均展示缩写标签；品系 CSV 增加末列「蚊株缩写」（可空，旧文件缺该列时可正常导入）。</p>
-          <p><b>数据导入 / 导出：</b>面板标题区提供「＋ 新增品系 / 导入 CSV / 导出 CSV」。导出生成真实 CSV 文件（蚊株、名称、物种编码、拉丁名、来源、备注、蚊株缩写七列，末列可空）；导入按相同列序合并，蚊株已存在则更新、否则新增，完成后提示新增 / 更新 / 跳过条数。<span class="tag assume">假设</span>。</p>
+          <p><b>数据导入 / 导出：</b>面板标题区提供「＋ 新增蚊株 / 导入记录 / 导出全部记录」。每个蚊株卡片可导出「蚊株记录」CSV（蚊株、名称、蚊株编码、拉丁名、来源、备注、蚊株缩写七列 + 关联蚊笼行），可直接再导入；「导出全部记录」生成蚊株档案 CSV（九列，含关联蚊笼与代际分布）；「导入记录」按相同列序合并，蚊株已存在则更新、否则新增（兼容蚊株记录 CSV 的蚊笼行），完成后提示新增 / 更新 / 跳过条数。<span class="tag assume">假设</span>。</p>
           <h4>蚊笼列表</h4>
           <ul>
             <li>列：笼号、品系 / 世代、起始日期、当前阶段、当前数量、累积存活率、状态、操作。</li>
             <li>筛选：状态（全部 / 饲养中 / 已结束 / 已废弃）与品系；无结果时显示空态卡片。</li>
             <li>行操作：「详情」进入蚊笼详情；「记录」打开记录表单（F4）；「报告」导出单页饲养报告（F9）。</li>
-            <li><b>数据导入 / 导出：</b>标题区「导出 CSV」生成真实文件（笼号、蚊株、世代、亲代笼、起始日期、起始卵量、当前阶段、数量八列，含已结束蚊笼）；「导入 CSV」按相同列序合并，笼号已存在则更新基础字段、否则新建蚊笼（蚊株须已存在于品系档案，阶段须为合法虫态，否则该行跳过并计入提示）。</li>
+            <li><b>数据导入 / 导出：</b>标题区提供「＋ 新增蚊笼 / 导入记录 / 导出全部记录」。「导入记录」按蚊笼列表八列格式合并（笼号、蚊株、世代、亲代笼、起始日期、起始卵量、当前阶段、数量），笼号已存在则更新基础字段、否则新建蚊笼（蚊株须已存在于蚊株档案，阶段须为合法虫态，否则该行跳过并计入提示）；「导出全部记录」生成蚊笼管理记录 CSV（全部蚊笼的阶段转换 / 饲喂 / 环境 / 处置 / 结笼逐条记录）。</li>
           </ul>
           <h4>新建蚊笼</h4>
           <ul>
-            <li>必填：品系（下拉随品系档案实时更新）、世代号（格式 F + 数字）、起始日期（默认今天，不得晚于今天）、起始卵量（≥ 1 的整数）；选填：<b>亲代蚊笼</b>（从在养蚊笼中选择，选定后世代号自动填为亲代世代 +1、来源说明自动填为「亲代蚊笼 ×× 产卵收集」）与来源说明。</li>
+            <li>必填：品系（下拉随蚊株档案实时更新）、世代号（格式 F + 数字）、起始日期（默认今天，不得晚于今天）、起始卵量（≥ 1 的整数）；选填：<b>亲代蚊笼</b>（从在养蚊笼中选择，选定后世代号自动填为亲代世代 +1、来源说明自动填为「亲代蚊笼 ×× 产卵收集」）与来源说明。</li>
             <li>笼号自动生成（C-流水号），不可编辑。</li>
             <li>提交后自动生成「卵入笼」记录，蚊笼置为「饲养中 · 卵期」，并进入蚊笼详情。</li>
             <li>同一品系下世代号可重复（同代分笼扩繁），重复时提示确认后允许，避免误填 [产品判断]。</li>
@@ -1039,7 +1281,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
           <h4>内容</h4>
           <ul>
             <li><b>软件介绍：</b>MosqCare 是面向个人 / 小实验室的蚊虫饲养记录与管理工作台，单机使用、以蚊笼为单位记录全过程，提供预警、统计与单页报告能力。</li>
-            <li><b>更新日志：</b>v1.0 首版（四类记录、预警闭环、统计分析、交互式 PRD）；v1.1 蓝色主题、以蚊笼为单位；v1.2 图形化虫态卡片、预警上卡、品系档案独立栏目；v1.3 单页饲养报告（AeLabStr 模板）、品系代系关系、世代对比、设置与关于；v1.4 卡通图标与多阶段并行显示、CSV 导入导出、预警阈值入预警中心；v1.5 IoT 接入面板（F12）；v1.6 去演示化标注、预警简化为建议制、IoT 接入指南、蚊笼编辑 / 删除、规划 Windows 安装包；v1.7 IoT 改为内置米家连接器（账号直连，HA 转可选）、默认无数据 + 导入预设数据、新增记录分组重构、去除冲正、二次元萌系图标。</li>
+            <li><b>更新日志：</b>v1.0 首版（四类记录、预警闭环、统计分析、交互式 PRD）；v1.1 蓝色主题、以蚊笼为单位；v1.2 图形化虫态卡片、预警上卡、蚊株档案独立栏目；v1.3 单页饲养报告（AeLabStr 模板）、品系代系关系、世代对比、设置与关于；v1.4 卡通图标与多阶段并行显示、CSV 导入导出、预警阈值入预警中心；v1.5 IoT 接入面板（F12）；v1.6 去演示化标注、预警简化为建议制、IoT 接入指南、蚊笼编辑 / 删除、规划 Windows 安装包；v1.7 IoT 改为内置米家连接器（账号直连，HA 转可选）、默认无数据 + 导入预设数据、新增记录分组重构、去除冲正、二次元萌系图标。</li>
             <li><b>联系与许可：</b>联系方式待定 <span class="tag tbd">待定</span>。</li>
           </ul>
         </section>
@@ -1104,12 +1346,19 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
   </section>
 </div>
 <script src="data/preset/demo.js"></script>
+<script src="script/qr.js"></script>
+<script src="script/zip.js"></script>
 <script src="script/i18n.js"></script>
 <script src="script/algo/registry.js"></script>
 <script src="script/algo/activity.v0.1.js"></script>
 <script src="script/algo/research.v0.1.js"></script>
 <script src="script/algo/forecast.v0.1.js"></script>
 <script src="script/algo/briere.v0.1.js"></script>
+<script src="script/algo/stagek.v0.1.js"></script>
+<script src="vendor/ort/ort.all.min.js"></script>
+<script src="script/cv.js"></script>
+<script src="script/llm.js"></script>
 <script src="script/persistence.js"></script>
 <script src="script/app.js"></script>
-</bo
+</body>
+</html>

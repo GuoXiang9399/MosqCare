@@ -3,7 +3,7 @@
 var DEMO_NOW = new Date('2026-11-05T08:00:00');
 var TODAY = '2026-11-05';
 var STAGES = ['卵期','L1期','L2期','L3期','L4期','蛹期','成虫期'];
-var PAGE_TITLES = {dashboard:'工作台', strains:'品系档案', batches:'蚊笼管理', 'batch-detail':'蚊笼详情', iot:'硬件接入', analytics:'统计分析', alerts:'预警中心', settings:'设置', about:'关于'};
+var PAGE_TITLES = {dashboard:'工作台', strains:'蚊株档案', batches:'蚊笼管理', 'batch-detail':'蚊笼详情', iot:'硬件', models:'模型', analytics:'统计分析', alerts:'预警中心', settings:'设置', about:'关于'};
 
 // 默认无数据；预设数据通过设置页「导入预设数据」载入
 function presetData(){

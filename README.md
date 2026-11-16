@@ -1,8 +1,8 @@
 # MosqCare 蚊媒饲养工作台 / MosqCare Mosquito-Rearing Workbench
 
-**MosqCare 蚊媒饲养工作台** · v3.4 — 面向个人 / 小实验室的蚊虫饲养过程管理工具：记录、统计、分析、可视化。单机使用，无账号体系。
+**MosqCare 蚊媒饲养工作台** · v4.0 — 面向个人 / 小实验室的蚊虫饲养过程管理工具：记录、统计、分析、可视化。单机使用，无账号体系。
 
-**MosqCare** · v3.4 — A process-management tool for mosquito rearing in personal / small laboratories: recording, statistics, analysis and visualization. Runs standalone; no account required.
+**MosqCare** · v4.0 — A process-management tool for mosquito rearing in personal / small laboratories: recording, statistics, analysis and visualization. Runs standalone; no account required.
 
 开发者 / Developer：河南大学基础医学院 / 河南大学深圳研究院 郭祥
 School of Basic Medical Sciences, Henan University / Shenzhen Research Institute, Henan University.
@@ -19,6 +19,12 @@ School of Basic Medical Sciences, Henan University / Shenzhen Research Institute
   Automatic alerts for overdue feeding / cage change, out-of-range temperature & humidity and abnormal survival; alerts come with handling suggestions only — no disposition forms.
 - **统计分析 / Analytics**：生存分析、活动分析（多页签）、阶段转化率、月度产出趋势、世代对比与预警统计。
   Survival analysis, activity analysis (tabbed), stage transition rates, monthly yield trends, generation comparison and alert statistics.
+- **抗药测定与合规互操作 / Resistance assay & compliance**：GB/T 26347 成蚊接触筒法抗药性测定全流程（自动倒计时、Abbott 校正、敏感性判定与待判提醒）；蚊株 / 蚊笼 QR 标签批量打印；发育历期基准对比与历期异常预警；血饲供体与伦理批号字段；「两性生命表模板」CSV（R insectecol 规范）；一键导出 .eln 数据包（RO-Crate 规范，可导入 eLabFTW 等 ELN）；GLP 数据完整性层（操作人署名、审计轨迹、ALCOA+ 自检）。
+  Resistance bioassay per GB/T 26347 (contact-tube workflow with countdown, Abbott correction and automatic verdicts); batch QR label printing for strains / cages; development-duration baselines with anomaly alerts; blood-feed donor & ethics fields; two-sex life-table CSV template (R insectecol); one-click .eln export (RO-Crate, eLabFTW-compatible); GLP data-integrity layer (operator attribution, audit trail, ALCOA+ checklist).
+- **生产质量控制 / SIT production QC**：蚊笼详情可选 QC 记录套件——性分离（自动计算雌污染率 / 回收率）、辐照（Co-60 γ / X 射线 / 电子束、剂量校验）与飞行测试（FAO 圆筒口径、FAI 指数）；生产质量指标卡汇总羽化率与三类 QC 最近值；翅长测量辅助（照片四点半自动测量、可选 px/mm 标定）与 CSV 导出。
+  Optional QC record suite in cage details — sex separation (contamination & recovery rates), irradiation (source / dose verification) and flight test (FAO cylinder, FAI index); a production-quality card summarising emergence rate and latest QC values; semi-automatic wing-length measurement from photos with optional px/mm calibration and CSV export.
+- **智能感知（实验性）/ Intelligent sensing (experimental)**：CV 照片计数——onnxruntime-web 1.23 随软件本地分发（WebGPU 优先、WASM SIMD 多线程自动回退，零网络通信），本地 .onnx 模型导入（模型卡含 SHA-256 / 输入输出 / 加载耗时，置信度阈值即时生效），蚊笼详情「照片计数」完成 640×640 识别与检出框可视化；仅「蚊虫计数领域模型」可将检出数预填至阶段计数表单（AI 预填 · 人工确认，双署名元数据），内置 COCO 演示权重一键载入、仅验证流程不可入账；AI 补录草稿——粘贴 AI 助手草稿文本，本地规则解析（非模型推理）生成结构化预览，确认后才写入台账。全部推理与解析在本机完成。
+  CV photo counting with locally bundled onnxruntime-web 1.23 (WebGPU-first, WASM SIMD fallback, zero network), local .onnx import with a model card (SHA-256 / IO / load time) and a live confidence threshold; cage-level photo counting with detection overlay; only declared mosquito-counting domain models may prefill stage-count forms (AI prefill · human confirm, dual attribution) while the bundled COCO demo weights are for pipeline validation only; paste-channel AI draft parsing runs locally with deterministic rules and writes only after human confirmation. All inference and parsing stay on-device.
 - **硬件接入 / Hardware integration**：
   - 米家 IoT：软件内登录小米账号一键同步温湿度传感器与插座（内置小米官方集成内核，无需自建 Home Assistant）。
     Mijia IoT: sign in with a Xiaomi account to sync temperature / humidity sensors and smart plugs (official Xiaomi integration built in — no Home Assistant needed).
@@ -36,15 +42,26 @@ School of Basic Medical Sciences, Henan University / Shenzhen Research Institute
 ## 目录结构 / Directory layout
 
 ```
-index.html                  单页应用入口 / Single-page app entry
-script/
-  app.js                    应用逻辑 / Application logic
-  i18n.js                   中英词典 / Bilingual dictionary
-  persistence.js            桌面版本地落盘 / Desktop local persistence
-  algo/registry.js          算法版本注册 / Algorithm registry
-  algo/activity.v0.1.js     活动度分析算法 v0.1 / Activity analysis v0.1
-data/preset/demo.js         内置示例数据 / Built-in demo data
-result/README.txt           结果目录说明 / Notes about result/
+ui/
+  index.html                 单页应用入口 / Single-page app entry
+  script/
+    app.js                   应用逻辑 / Application logic
+    i18n.js                  中英词典 / Bilingual dictionary
+    persistence.js           桌面版本地落盘 / Desktop local persistence
+    cv.js                    照片计数辅助 MosqCV v0.1（智能感知）/ Photo-count helper (intelligent sensing)
+    llm.js                   AI 补录草稿解析 MosqLLM v0.1 / AI draft parsing (paste channel)
+    qr.js                    QR 标签编码器 / QR label encoder
+    zip.js                   .eln 导出 ZIP 装箱 / .eln export packer
+    algo/registry.js         算法版本注册 / Algorithm registry
+    algo/activity.v0.1.js    活动度分析算法 v0.1 / Activity analysis v0.1
+    algo/briere.v0.1.js      Brière 发育速率拟合 v0.1 / Brière development-rate fit v0.1
+    algo/forecast.v0.1.js    发育预测（积温模型）v0.1 / GDD forecasting v0.1
+    algo/research.v0.1.js    科研分析 v0.1 / Research analytics v0.1
+    algo/stagek.v0.1.js      阶段特异热常数 v0.1 / Stage-specific thermal constants v0.1
+  data/preset/demo.js        内置示例数据 / Built-in demo data
+  model/yolov10n-coco-demo.onnx   内置演示权重（不可入账）/ Bundled demo weights (counting disabled)
+  vendor/ort/                onnxruntime-web 本地分发 / Locally bundled onnxruntime-web
+result/README.txt            结果目录说明 / Notes about result/
 ```
 
 运行版安装后额外生成 / Created after installation at runtime:
@@ -58,10 +75,10 @@ result/  sessions.json · videos/（监测视频 / monitoring videos） · expor
 
 - **Windows 安装包 / Windows installer**：提供完整版（中英双语）与中文版两个 NSIS 安装包，当前用户级安装，无需管理员权限。
   Two NSIS installers are provided — Full (bilingual) and CN (Chinese-locked); per-user install, no administrator rights required.
-- **绿色版 / Portable**：直接用浏览器打开 `index.html` 即可使用（浏览器模式下视频留存为下载文件，数据存于 localStorage）。
-  Open `index.html` directly in a browser for portable use (in browser mode videos are saved as downloads and data lives in localStorage).
-- 桌面版基于 Tauri 2 构建（Rust 后端 + WebView2），支持数据落盘、系统托盘与摄像头录制。
-  The desktop edition is built on Tauri 2 (Rust backend + WebView2), enabling local persistence, the system tray and camera recording.
+- **绿色版 / Portable**：直接用浏览器打开 `ui/index.html` 即可使用（浏览器模式下视频留存为下载文件，数据存于 localStorage）。
+  Open `ui/index.html` directly in a browser for portable use (in browser mode videos are saved as downloads and data lives in localStorage).
+- 桌面版基于 Tauri 2 构建（Rust 后端 + WebView2），支持数据落盘、系统托盘与摄像头录制；v4.0 智能感知的模型推理经 onnxruntime-web 在 WebView 内本地完成（WebGPU 优先，无需 GPU 亦可自动回退 WASM）。
+  The desktop edition is built on Tauri 2 (Rust backend + WebView2), enabling local persistence, the system tray and camera recording; v4.0 intelligent-sensing inference runs on-device in the WebView via onnxruntime-web (WebGPU-first with automatic WASM fallback).
 
 ## 数据导入 / Data import
 
@@ -77,6 +94,38 @@ Vanilla HTML / CSS / JavaScript (no framework) · Tauri 2 · Rust (serialport / 
 ## 更新日志 / Changelog
 
 完整更新日志（与软件「关于」页一致）。Complete changelog, identical to the in-app About page.
+
+### v4.0 · 2026-11-12 — 智能感知 / Intelligent sensing
+
+- ① CV 照片计数预填（一期）：onnxruntime-web 1.23 运行时随软件本地分发（`ui/vendor/ort/`，零 CDN、无遥测），WebGPU 优先、WASM 多线程 SIMD 自动回退，全部推理本机完成、无网络通信；设置 → 智能感知（实验性）支持本地 .onnx 模型导入、用途声明（演示模型 COCO 通用预训练 / 蚊虫计数领域模型）、模型卡（文件名 / 大小 / SHA-256 / 输入输出 / 加载耗时）与置信度阈值滑杆；蚊笼详情新增「照片计数」：照片导入 → 640×640 识别 → 检出框叠加可视化 + 检出数 / 推理耗时读数；AI 预填 · 人工确认（双署名）：仅蚊虫计数领域模型可将检出数预填至阶段计数表单，确认保存后写入台账并带 `origin:ai-draft` 与模型元数据（SHA-256 前 12 位、阈值、检出数、推理耗时）；模型文件不入库不随软件分发、会话仅驻内存；当前仅支持 YOLOv10 系 NMS-free 输出（[1,300,6]）的模型；算法独立注册于 `script/cv.js`（MosqCV v0.1）。
+- ② LLM 记录辅助（二期）：蚊笼详情新增「AI 补录草稿」：粘贴 AI 助手草稿文本 → 本地确定性规则解析（非模型推理，识别日期 / 转入阶段 / 数量 / 淘汰 / 备注）→ 结构化预览卡（已识别 ✓ / 未识别 —）→ 确认后带入阶段计数表单；`llm` 元数据（来源 external-paste、输入字数、识别字段数）与 `cv` 元数据可并存于同一条记录；识别不到的字段留空不猜测；内置本机 LLM（tauri-plugin-llama-crab，GGUF 量化）为规划能力，本版未启用；算法独立注册于 `script/llm.js`（MosqLLM v0.1）。
+- ③ 内置演示权重一键载入（三期）：设置 → 智能感知新增「载入内置演示模型」：随软件内置 COCO 通用预训练权重（`ui/model/yolov10n-coco-demo.onnx`，FP32，9.0 MB，SHA-256 展示于模型卡），无需自行获取 .onnx 即可跑通「载入模型 → 照片计数 → 检出框可视化」完整链路；诚实边界不变：演示模型不识别蚊虫，检出框仅验证识别流程，计数不可写入台账、预填入口禁用；经独立 spike 验证（WebGPU 会话约 0.4s、单次推理约 18–23 ms、[1,300,6] NMS-free 解码正常，控制台无错误）。
+  EN: intelligent sensing in three instalments — CV photo counting with locally bundled onnxruntime-web (WebGPU-first, on-device only), model cards with SHA-256, detection overlay and human-confirmed prefill gated to declared mosquito-counting domain models; paste-channel AI draft parsing with deterministic local rules (no model inference) and dual attribution; one-click bundled COCO demo weights for pipeline validation only (counting disabled).
+- 全部新功能中英双语。All new features are bilingual.
+
+### v3.7 — 生产质量控制 / SIT production quality control
+
+- ① SIT QC 记录套件（可选记录项）：蚊笼详情新增「QC 记录」——性分离（分选方法、雄虫数、混入雌虫数，自动计算雌污染率与回收率）、辐照（Co-60 γ / X 射线 / 电子束、标称剂量、剂量校验、辐照批次号）、飞行测试（测试个体数、24h 飞出数，自动计算 FAI 飞行能力指数，FAO 飞行测试圆筒口径）；「生产质量指标」卡汇总羽化率与三类 QC 最近值（附诚实脚注：可选记录项，未记录不代表未达标）；QC 记录并入蚊笼管理记录 CSV 并可单独导出「SIT QC 记录」CSV。
+- ② 翅长测量辅助：翅照片按「① 标尺起点 → ② 标尺终点 → ③ 翅基 → ④ 翅尖」四点点击半自动测量，可选两点标尺标定（px/mm）自动换算翅长（mm），未标定仅记录像素距离并如实标注；测量记录按蚊笼保存 / 删除（两击确认）并支持 CSV 导出，照片不入库（仅保存测量结果）。
+- ③ 阶段特异热常数与密度因子（探索）：生存分析新增卡片——按 stage 记录切分各阶段日期区间，估算阶段热常数 K = 历期 ×（均温 − T₀）（T₀ 优先本地校准、退回文献值，附「不可跨品系外插」脚注）；密度因子以起始卵量近似，给出密度 vs 卵→成虫历期 / 累积存活率的 Pearson r（n≥5，|r|<0.3 标弱）；算法独立注册于 `script/algo/stagek.v0.1.js`（MosqStageK）。
+- ④ 侧栏「抗药性测定」更名为「抗药测定」（页面内名称与 GB/T 26347 标准引用不变）。
+  EN: optional SIT QC record suite (sex separation with contamination & recovery rates, irradiation, flight test with FAI), wing-length photo measurement with optional px/mm calibration, stage-specific thermal constants & density-factor exploration (MosqStageK), sidebar rename.
+- 全部新功能中英双语。All new features are bilingual.
+
+### v3.6 — 合规与互操作 / Compliance & interoperability
+
+- ① 发育历期基准表：蚊笼详情新增「发育历期基准」卡，按品系拉丁名给出卵 / L1–L4 / 蛹各阶段参考历期区间（26±1℃ 文献通值）与本笼实际历期对比（基准内 / 偏快 / 偏慢），当前阶段超参考上限自动生成「历期异常」预警；② 血饲供体字段：供体类型（活体动物-麻醉 / 束缚 / 镇静、人工膜血饲、离体抗凝血）、供体编号、伦理批号写入台账与 CSV；③ 蚊株 / 蚊笼标签打印：纯前端零依赖 QR 编码器（`script/qr.js`），按当前筛选批量或单笼生成标签（QR 载荷 MosqCare|笼号|世代），A4 3×6 打印版式；④ 抗药性测定（新页签，GB/T 26347 生物测定法）：成蚊接触筒法全流程——新建测定（来源蚊笼、药剂浓度、处理筒 1–4、每筒默认 30 只、对照筒自动生成）后自动倒计时（接触 1h、24h 判定期），各筒死亡率内联录入，自动判定（98–100% 敏感 / 90–98% 需确证 / <90% 抗性；对照死亡率 5–20% 按 Abbott 校正、>20% 提示重做），到期未录入自动生成「测定待判」提醒，测定记录一键导出 CSV；⑤ 两性生命表模板导出：生成符合 R 包 insectecol `lifeTable_read()` 输入规范的个体日记录 CSV（含示例行）；⑥ .eln 导出：零依赖 ZIP 装箱（`script/zip.js`）——ro-crate-metadata.json（RO-Crate 1.1）+ 台账原始 JSON + 全部 CSV 导出 + 双语 README，可直接导入 eLabFTW 等 ELN 或长期归档；⑦ GLP 数据完整性层（GLP-ready）：操作人姓名设置后新记录自动署名（by）并附创建时间戳（cat），审计轨迹查看器（全台账 who / when / what 倒序）与 CSV 导出，ALCOA+ 九项自检清单自动评估。
+  EN: development-duration baselines with anomaly alerts; blood-feed donor & ethics fields; QR label printing (A4 3×6); GB/T 26347 contact-tube resistance bioassay with countdown, Abbott correction and automatic verdicts; two-sex life-table template (R insectecol); .eln export (RO-Crate 1.1, eLabFTW-compatible); GLP data-integrity layer with audit trail and ALCOA+ checklist.
+- 全部新功能中英双语。All new features are bilingual.
+
+### v3.5 · 2026-11-11 — 界面精修 / UI refinement
+
+- ① 界面去「科研分析」前缀：功能区直接命名（如「KM 生存曲线 · 生命表」「Brière 发育速率拟合」），预警提示与脚注的指路文案同步改为「统计分析 → KM 生存曲线」「统计页签」等表述（历史更新日志条目保留原文）。
+- ② 生存分析 / 活动分析 / 环境分析三个页签新增「蚊种 → 蚊株 → 蚊笼」级联筛选：选项由实时数据生成（不从示例数据硬编码），上级选「全部」时下级列全，蚊笼选项显示「笼号 · 品系名 世代」，可按单笼定位分析；生存页单笼筛选时给出「单笼模式」提示（log-rank 与池化对比不适用），活动 / 环境页的 KPI、会话下拉、会话列表、昼夜节律图与环境图表全部按筛选结果计算。
+- ③ 生存分析界面重组：顶部筛选条 → 关键指标行（已结束蚊笼 / 覆盖世代 / 覆盖蚊种 / 累计羽化成虫）→「KM 生存曲线 · 生命表」主区（KM 曲线 + log-rank 注记 + 三个导出按钮、池化生命表 + R₀/T/rₘ/λ/DT 参数卡、预测参数校准、Brière 拟合、羽化产量区间依次以子卡片呈现，KM 图加高至 320px 并完善坐标轴与图例），CSV 导出格式与算法不变。
+- ④ 全新品牌标识：侧边栏、顶栏、关于页与浏览器 favicon 更换为「纯色徽章 + 蚊虫侧影」Logo（#333D7A 单色圆角徽章，白色蚊虫侧面剪影：口器、触角、翅与足等特征清晰可辨），Windows 应用图标（ico）同步重制。
+- ⑤ 关于页修正：英文模式下开发者单位信息不再重复两次（中文模式保持中英两行），关于 / 开发者 / 更新日志同级标题字重统一。
+  EN: "Research Analysis" prefix removed in favour of direct feature names; species → strain → cage cascading filters added to the Survival / Activity / Environment tabs (single-cage mode with an honest note); the survival tab reorganised into filter bar → KPI row → main KM · life-table section with sub-cards; a new solid-badge mosquito logo (monochrome #333D7A, side-view mosquito silhouette) for sidebar / top bar / About / favicon with a redrawn Windows .ico; About-page fixes (no duplicate affiliation in English, unified heading weights).
 
 ### v3.4 · 2026-11-10 — 感知扩展 / Perception extension
 
