@@ -1,8 +1,8 @@
 # MosqCare 蚊媒饲养工作台 / MosqCare Mosquito-Rearing Workbench
 
-**MosqCare 蚊媒饲养工作台** · v4.0 — 面向个人 / 小实验室的蚊虫饲养过程管理工具：记录、统计、分析、可视化。单机使用，无账号体系。
+**MosqCare 蚊媒饲养工作台** · v4.1 — 面向个人 / 小实验室的蚊虫饲养过程管理工具：记录、统计、分析、可视化。单机使用，无账号体系。
 
-**MosqCare** · v4.0 — A process-management tool for mosquito rearing in personal / small laboratories: recording, statistics, analysis and visualization. Runs standalone; no account required.
+**MosqCare** · v4.1 — A process-management tool for mosquito rearing in personal / small laboratories: recording, statistics, analysis and visualization. Runs standalone; no account required.
 
 开发者 / Developer：河南大学基础医学院 / 河南大学深圳研究院 郭祥
 School of Basic Medical Sciences, Henan University / Shenzhen Research Institute, Henan University.
@@ -95,6 +95,10 @@ Vanilla HTML / CSS / JavaScript (no framework) · Tauri 2 · Rust (serialport / 
 
 完整更新日志（与软件「关于」页一致）。Complete changelog, identical to the in-app About page.
 
+### v4.1 · 2026-11-18 — 饲养柜总览 3D 重构 / Cage-overview revamp
+
+- 工作台「饲养柜总览」重做为纯 SVG 正面微俯视图（零依赖、无渲染循环）：双柜并排布局——左「饲养盆区」/ 右「成虫笼区」各 4×4 笼位，按发育阶段自动分区，笼内内容物可视化；空调移至左上，下方为衣架与白大褂，温湿度提示置于空调下方，柜体加高、留白收紧。
+  The dashboard "cage-rack overview" was rebuilt as a pure-SVG front view (zero dependencies, no render loop): two side-by-side cabinets — a "rearing-tray zone" (left) and an "adult-cage zone" (right) with 4×4 slots each, automatically split by life stage and visualising cage contents; the A/C unit moves to the top-left with a coat rack and lab coat beneath it, temperature/humidity hints sit under the A/C, and the cabinets are taller with tighter whitespace.
 ### v4.0 · 2026-11-12 — 智能感知 / Intelligent sensing
 
 - ① CV 照片计数预填（一期）：onnxruntime-web 1.23 运行时随软件本地分发（`ui/vendor/ort/`，零 CDN、无遥测），WebGPU 优先、WASM 多线程 SIMD 自动回退，全部推理本机完成、无网络通信；设置 → 智能感知（实验性）支持本地 .onnx 模型导入、用途声明（演示模型 COCO 通用预训练 / 蚊虫计数领域模型）、模型卡（文件名 / 大小 / SHA-256 / 输入输出 / 加载耗时）与置信度阈值滑杆；蚊笼详情新增「照片计数」：照片导入 → 640×640 识别 → 检出框叠加可视化 + 检出数 / 推理耗时读数；AI 预填 · 人工确认（双署名）：仅蚊虫计数领域模型可将检出数预填至阶段计数表单，确认保存后写入台账并带 `origin:ai-draft` 与模型元数据（SHA-256 前 12 位、阈值、检出数、推理耗时）；模型文件不入库不随软件分发、会话仅驻内存；当前仅支持 YOLOv10 系 NMS-free 输出（[1,300,6]）的模型；算法独立注册于 `script/cv.js`（MosqCV v0.1）。

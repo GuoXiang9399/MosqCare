@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>MosqCare 蚊媒饲养工作台 · v4.0</title>
+<title>MosqCare 蚊媒饲养工作台 · v4.1</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22 viewBox%3D%220 0 64 64%22%3E%3Csymbol id%3D%22mc-logo%22 viewBox%3D%220 0 64 64%22%3E%3Crect x%3D%222%22 y%3D%222%22 width%3D%2260%22 height%3D%2260%22 rx%3D%2214%22 fill%3D%22%23333D7A%22%2F%3E%3Cg fill%3D%22%23fff%22%3E%3Cpath d%3D%22M5.5 23.5 L21 27 L20.5 31 L7.5 26.5 Z%22%2F%3E%3Ccircle cx%3D%2221.5%22 cy%3D%2228.5%22 r%3D%224%22%2F%3E%3Cellipse cx%3D%2227.5%22 cy%3D%2231.5%22 rx%3D%226%22 ry%3D%225.5%22%2F%3E%3Cellipse cx%3D%2240%22 cy%3D%2235.5%22 rx%3D%2212%22 ry%3D%224.4%22 transform%3D%22rotate(16 40 35.5)%22%2F%3E%3Cellipse cx%3D%2234%22 cy%3D%2224%22 rx%3D%2213%22 ry%3D%224.6%22 transform%3D%22rotate(-15 34 24)%22%2F%3E%3C%2Fg%3E%3Cg fill%3D%22none%22 stroke%3D%22%23fff%22 stroke-linecap%3D%22round%22%3E%3Cpath d%3D%22M20 24.8 Q17.8 22.4 16 21.8%22 stroke-width%3D%221.1%22%2F%3E%3Cpath d%3D%22M24.5 35.5 Q20.5 42 22 48.5%22 stroke-width%3D%221.4%22%2F%3E%3Cpath d%3D%22M28.5 37 Q27.5 44.5 30.5 51%22 stroke-width%3D%221.4%22%2F%3E%3Cpath d%3D%22M33 36.5 Q35 44 40 50%22 stroke-width%3D%221.4%22%2F%3E%3Cpath d%3D%22M36.5 34.5 Q42.5 41 48.5 45.5%22 stroke-width%3D%221.4%22%2F%3E%3Cpath d%3D%22M23.5 34 Q17.5 38 13.5 44.5%22 stroke-width%3D%221.4%22%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E">
 <style>
 *{box-sizing:border-box}
@@ -78,6 +78,21 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 .cc-btns{margin-top:auto;padding-top:9px;display:flex;gap:6px}
 @media (max-width:760px){.kpis{grid-template-columns:repeat(2,1fr)}.cage-grid{grid-template-columns:repeat(2,1fr)}}
 .dash-sep{height:1px;background:#e2e8f0;margin-top:14px}
+/* ---- 工作台 3D 饲养柜 ---- */
+#cage3d-wrap{position:relative;height:400px;border-radius:12px;overflow:hidden;border:1px solid #e2e8f0;background:linear-gradient(180deg,#f7f9fc 0%,#edf1f7 100%)}
+#cage3d-wrap svg{display:block;width:100%;height:100%}
+.mc3d-slot{cursor:pointer}
+.mc3d-slot .mc3d-hit{fill:rgba(37,99,235,0);stroke:rgba(37,99,235,0);stroke-width:1;transition:fill .15s ease,stroke .15s ease}
+.mc3d-slot:hover .mc3d-hit{fill:rgba(37,99,235,.07);stroke:rgba(37,99,235,.35)}
+.mc3d-empty{pointer-events:none}
+.mc3d-pulse{transform-box:fill-box;transform-origin:center;animation:mc3dPulse 1.6s ease-in-out infinite}
+@keyframes mc3dPulse{0%,100%{opacity:.3;transform:scale(.75)}50%{opacity:.95;transform:scale(1.25)}}
+#cage3d-hint{position:absolute;left:10px;bottom:8px;font-size:11px;color:#64748b;pointer-events:none;background:rgba(255,255,255,.75);padding:2px 8px;border-radius:8px}
+#cage3d-legend .lg3d{display:inline-flex;align-items:center;gap:4px;font-size:11.5px;color:#475569}
+#cage3d-legend .dot3d{width:9px;height:9px;border-radius:50%;display:inline-block}
+#cage3d-legend .dot3d.alert{background:#ef4444;box-shadow:0 0 5px #ef4444}
+.mc3d-tip{position:absolute;display:none;z-index:30;background:rgba(15,23,42,.92);color:#f1f5f9;font-size:12px;line-height:1.5;padding:7px 10px;border-radius:8px;pointer-events:none;max-width:260px;box-shadow:0 4px 14px rgba(15,23,42,.25)}
+@media (max-width:760px){#cage3d-wrap{height:300px}}
 .rp-sheet{background:#fff;border:1px solid #cbd5e1;border-radius:6px;padding:20px 22px;font-size:12px;color:#1e293b;max-height:58vh;overflow:auto}
 .rp-head{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2.5px solid #1d4ed8;padding-bottom:8px;margin-bottom:12px}
 .rp-head h4{font-size:16.5px;color:#0f172a;margin:0;letter-spacing:.5px}
@@ -299,7 +314,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 <!-- v3.5 品牌标识（可复用 inline SVG，侧边栏 / 顶栏 / 关于页共用；favicon 为同源 data-URI） -->
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><symbol id="mc-logo" viewBox="0 0 64 64"><rect x="2" y="2" width="60" height="60" rx="14" fill="#333D7A"/><g fill="#fff"><path d="M5.5 23.5 L21 27 L20.5 31 L7.5 26.5 Z"/><circle cx="21.5" cy="28.5" r="4"/><ellipse cx="27.5" cy="31.5" rx="6" ry="5.5"/><ellipse cx="40" cy="35.5" rx="12" ry="4.4" transform="rotate(16 40 35.5)"/><ellipse cx="34" cy="24" rx="13" ry="4.6" transform="rotate(-15 34 24)"/></g><g fill="none" stroke="#fff" stroke-linecap="round"><path d="M20 24.8 Q17.8 22.4 16 21.8" stroke-width="1.1"/><path d="M24.5 35.5 Q20.5 42 22 48.5" stroke-width="1.4"/><path d="M28.5 37 Q27.5 44.5 30.5 51" stroke-width="1.4"/><path d="M33 36.5 Q35 44 40 50" stroke-width="1.4"/><path d="M36.5 34.5 Q42.5 41 48.5 45.5" stroke-width="1.4"/><path d="M23.5 34 Q17.5 38 13.5 44.5" stroke-width="1.4"/></g></symbol></svg>
 <header class="topbar">
-  <div class="tb-title"><svg class="tb-ico" width="20" height="20" aria-hidden="true"><use href="#mc-logo"/></svg><span>MosqCare · 蚊媒饲养工作台</span><span class="tb-ver">v4.0 · 2026-11-12 发布</span></div>
+  <div class="tb-title"><svg class="tb-ico" width="20" height="20" aria-hidden="true"><use href="#mc-logo"/></svg><span>MosqCare · 蚊媒饲养工作台</span><span class="tb-ver">v4.1 · 2026-11-18 发布</span></div>
 </header>
 <div class="app">
   <aside class="proto-pane">
@@ -330,6 +345,15 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
             <section class="page active" id="page-dashboard">
               <div class="kpis" id="kpi-cards" style="margin-top:12px"></div>
               <div class="dash-sep"></div>
+              <div class="region" id="cage3d-region" style="margin-top:12px">
+                <div class="region-title">饲养柜 · 3D 总览
+                  <span class="tag" style="background:#eef2ff;color:#4338ca">点击笼位查看详情</span>
+                  <span id="cage3d-legend" style="display:flex;gap:10px;flex-wrap:wrap;font-weight:500"></span>
+                </div>
+                <div id="cage3d-wrap">
+                  <div id="cage3d-hint">点击笼位可查看蚊笼详情 · 红色呼吸灯为预警笼</div>
+                </div>
+              </div>
               <div class="cage-grid" id="cage-grid" style="margin-top:12px"></div>
             </section>
             <!-- ================= 蚊株档案 ================= -->
@@ -678,12 +702,13 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
                 <div class="region-title">关于</div>
                 <div style="display:flex;align-items:center;gap:12px;padding-left:12px">
                   <svg width="40" height="40" aria-hidden="true"><use href="#mc-logo"/></svg>
-                  <p style="font-size:13px;color:#334155;line-height:1.7;margin:0"><b>MosqCare 蚊媒饲养工作台</b> · v4.0<br>面向个人 / 小实验室的蚊虫饲养过程管理工具：记录、统计、分析、可视化。单机使用，无账号体系。</p>
+                  <p style="font-size:13px;color:#334155;line-height:1.7;margin:0"><b>MosqCare 蚊媒饲养工作台</b> · v4.1<br>面向个人 / 小实验室的蚊虫饲养过程管理工具：记录、统计、分析、可视化。单机使用，无账号体系。</p>
                 </div>
                 <div class="region-title" style="margin:14px 0 6px">开发者</div>
                 <p style="font-size:12.5px;color:#475569;line-height:1.8;margin:0 0 8px;padding-left:12px">河南大学基础医学院 / 河南大学深圳研究院 郭祥<span class="affil-en"><br>School of Basic Medical Sciences, Henan University / Shenzhen Research Institute, Henan University.</span></p>
                 <div class="region-title" style="margin:14px 0 6px">更新日志</div>
                 <ul style="font-size:12.5px;color:#475569;line-height:1.8;margin:0 0 8px 18px">
+                  <li><b>v4.1 · 饲养柜总览 3D 重构</b> — 工作台「饲养柜总览」重做为纯 SVG 正面微俯视图（零依赖、无渲染循环、无 WebGL）：① 双柜并排正视布局——左「饲养盆区」/ 右「成虫笼区」各 4×4 笼位，按发育阶段自动分区（非成虫期入左柜、成虫期入右柜）；② 内容物可视化——方形 BugDorm 式网笼（网纱纹理 + 糖水杯 + 袖口）、卵粒 / 弧线幼虫 / 浮蛹 / 阶段色水面按发育阶段呈现，空格以叠放备用盆与空笼占位、减少柜内留白；③ 实验室环境元素——挂式空调（左上）与温湿度计（空调下方）、落地衣架白大褂、加湿器、空气净化器与盆栽；④ 交互——hover 显示蚊笼信息卡（笼号 / 蚊株 / 阶段 / 数量 / 预警）、点击跳转蚊笼详情、预警笼呼吸红点、底部阶段图例；全部文案中英双语。</li>
                   <li><b>v4.0 · 智能感知三期</b> — 内置演示权重 · 一键载入：① 设置 → 智能感知新增「载入内置演示模型」按钮：载入随软件内置的 COCO 通用预训练权重（model/yolov10n-coco-demo.onnx，FP32，9.0 MB，SHA-256 照常展示于模型卡），无需自行获取 .onnx 即可跑通「载入模型 → 照片计数 → 检出框可视化」完整链路；② 诚实边界不变：演示模型不识别蚊虫，检出框仅验证识别流程，计数不可写入台账、预填入口禁用（既有 banner 明示）；蚊虫计数领域模型（训练后）仍走本地文件导入并声明「蚊虫计数领域模型」用途，方可预填；③ 内置演示权重经独立 spike 页面验证（onnxruntime-web 1.23.2 本地自托管：WebGPU 会话约 0.4s、单次推理约 18–23 ms、YOLOv10 NMS-free 输出 [1,300,6] 解码正常，控制台无错误）；全部文案中英双语。</li>
                   <li><b>v4.0 · 智能感知二期</b> — LLM 记录辅助（AI 补录草稿 · 粘贴通道）：① 蚊笼详情新增「AI 补录草稿」入口：粘贴任意 AI 助手生成的补录草稿文本 → 本地确定性规则解析（非模型推理；识别日期 / 转入阶段 / 转入数量 / 淘汰 / 备注）→ 结构化预览卡（已识别 ✓ / 未识别 —，附输入字数与识别字段数）→ 一键带入「新增记录（阶段计数）」表单；② 双署名复用：解析结果经人工核对并确认保存后才写入台账，记录带 origin:ai-draft 与 llm 元数据（来源 external-paste、输入字数、识别字段数），时间线沿用「AI 预填 · 人工确认」徽标并追加草稿摘要；照片计数的 cv 元数据可与 llm 元数据并存于同一条记录；③ 诚实边界：解析为本地规则匹配（非模型推理），全部计算在本机完成、无网络通信；字段不足拒绝带入并回退手工表单；识别不到的字段留空不猜测（备注仅认显式引导符）；④ 内置本机模型（tauri-plugin-llama-crab，GGUF 量化，自动生成草稿）为 Tauri 桌面版规划能力，本版未启用（构建需 Rust MSRV 1.88 + MSVC C++ 工具链 + CMake，本机工具链缺失，详见实现计划）；算法独立注册于 script/llm.js（MosqLLM v0.1）；全部新功能中英双语。</li>
                   <li><b>v4.0</b> — 智能感知一期（CV 照片计数预填）：① CV 推理底座：onnxruntime-web 1.23 运行时随软件本地分发（ui/vendor/ort/，零 CDN、无遥测），WebGPU 优先、wasm 多线程 SIMD 自动回退，全部推理在本机完成、无网络通信；② 模型管理（设置 → 智能感知 · 实验性）：本地 .onnx 模型导入（ArrayBuffer 直建推理会话），模型用途声明（演示模型 COCO 通用预训练 / 蚊虫计数领域模型）、模型卡（文件名 / 大小 / SHA-256 / 输入输出 / 加载耗时）、置信度阈值滑杆（即时生效，阈值以下检出不计入预填）与模型卸载；模型文件不入库不随软件分发，会话仅驻内存，重启后需重新导入（诚实脚注明示）；③ 蚊笼详情新增「照片计数」入口：照片导入（培养皿 / 卵板俯拍为宜）→ 640×640 识别 → 检出框叠加可视化 + 检出数 / 推理耗时读数，照片仅本机识别、不入库不上传；④ AI 预填 · 人工确认（双署名）：仅「蚊虫计数领域模型」可将检出数预填至「新增记录（阶段计数）」表单，数量经人工核对并确认保存后才写入台账，记录带 origin:ai-draft 与模型元数据（SHA-256 前 12 位、阈值、检出数、推理耗时），时间线显示「AI 预填 · 人工确认」徽标；演示模型仅验证流程，明示「计数不可写入台账」并禁用预填入口；当前仅支持 YOLOv10 系 NMS-free 输出（[1,300,6]）的模型；算法独立注册于 script/cv.js（MosqCV v0.1）；全部新功能中英双语。</li>
@@ -1029,7 +1054,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
     <div class="doc-body doc" id="doc-body">
       <div class="doc-meta">
         <b>MosqCare · 蚊媒饲养工作台 产品需求文档（交互式）</b><br>
-        版本 v4.0 · 2026-11-12<br>
+        版本 v4.1 · 2026-11-18<br>
         定位：个人 / 小实验室<b>单机使用</b>的蚊虫饲养过程管理工具，覆盖记录、统计、分析与可视化。<br>
         阅读方式：默认呈现为可交互的软件预览（全屏原型）；本需求文档内容保留于文件内，供评审时查阅。
       </div>
@@ -1349,6 +1374,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 <script src="script/qr.js"></script>
 <script src="script/zip.js"></script>
 <script src="script/i18n.js"></script>
+<script src="script/cage3d.js"></script>
 <script src="script/algo/registry.js"></script>
 <script src="script/algo/activity.v0.1.js"></script>
 <script src="script/algo/research.v0.1.js"></script>

@@ -319,6 +319,8 @@ function renderDashboard(){ MCStore.save();
       '<button class="mini-btn" data-open-modal="record" data-batch="' + b.id + '">' + tr('记录') + '</button></div></div>';
   }).join('');
   $('#cage-grid').innerHTML = cards || '<div class="empty" style="grid-column:1/-1">' + tr('暂无在养蚊笼，请前往「蚊笼管理」新建') + '</div>';
+  // v4.1：3D 饲养柜同步（MosqCage3D）
+  if (window.MC3D) MC3D.sync(rearing, strains, alerts);
 }
 // ================= 品系档案 =================
 function renderStrains(){ MCStore.save();
@@ -2748,7 +2750,7 @@ function exportCsv(k){
         else if (r.t === 'treat') what = r.type + (r.out ? '，移出 ' + r.out : '') + (r.to ? '，去向 ' + r.to : '');
         else if (r.t === 'close') what = '结束原因 ' + r.reason + '，最终 ' + r.n;
         else if (r.t === 'qc') what = r.qcType + '，' + qcSubTxt(r);
-        rows.push(['MosqCare v4.0', nowIso, 'append-only 台账，记录不可更改', b.id, TL2[r.t] || r.t, r.d, r.tm || '', what, r.n || '', r.dead || '', r.by || '', r.cat || '']);
+        rows.push(['MosqCare v4.1', nowIso, 'append-only 台账，记录不可更改', b.id, TL2[r.t] || r.t, r.d, r.tm || '', what, r.n || '', r.dead || '', r.by || '', r.cat || '']);
       });
     });
     downloadCsv('MosqCare_审计轨迹_' + TODAY + '.csv', rows);
