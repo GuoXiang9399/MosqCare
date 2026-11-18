@@ -9,6 +9,17 @@ School of Basic Medical Sciences, Henan University / Shenzhen Research Institute
 
 ---
 
+
+## 软件截图 / Screenshots
+
+| 工作台 / Dashboard | 蚊笼管理 / Cage management |
+| :---: | :---: |
+| ![工作台](screenshots/dashboard.png) | ![蚊笼管理](screenshots/cages.png) |
+| **蚊株档案 / Strain records** | **统计分析 / Analytics** |
+| ![蚊株档案](screenshots/strains.png) | ![统计分析](screenshots/stats.png) |
+| **预警中心 / Alert center** | **关于 / About** |
+| ![预警中心](screenshots/alerts.png) | ![关于](screenshots/about.png) |
+
 ## 功能特性 / Features
 
 - **品系档案 / Strain records**：蚊株信息、代际关系树状展示、关联蚊笼追踪，支持 CSV 导入 / 导出。
